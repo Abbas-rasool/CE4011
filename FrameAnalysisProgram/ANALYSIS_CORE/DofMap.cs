@@ -3,6 +3,13 @@ using FrameAnalysisProgram.STRUCTURAL_MODEL;
 
 namespace FrameAnalysisProgram.ANALYSIS_CORE
 {
+    public enum DofType
+    {
+        Ux = 0,
+        Uy = 1,
+        Rz = 2
+    }
+
     /// <summary>
     /// Stores the global equation numbering of the active degrees of freedom
     /// for a 2D frame structure.
@@ -36,6 +43,12 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             NumberOfEquations = numberOfEquations;
         }
 
+        // Add this overload to DofMap alongside the existing GetEquation
+        public int GetEquation(int nodeId, DofType dof)
+        {
+            return GetEquation(nodeId, (int)dof);
+        }
+
         /// <summary>
         /// Returns the global equation number for a given node ID and local DOF index.
         /// Local DOF: 0 = Ux, 1 = Uy, 2 = Rz
@@ -62,12 +75,12 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
 
             return new int[]
             {
-                GetEquation(element.StartNode.Id, 0),
-                GetEquation(element.StartNode.Id, 1),
-                GetEquation(element.StartNode.Id, 2),
-                GetEquation(element.EndNode.Id, 0),
-                GetEquation(element.EndNode.Id, 1),
-                GetEquation(element.EndNode.Id, 2)
+                GetEquation(element.StartNode.Id, DofType.Ux),
+                GetEquation(element.StartNode.Id, DofType.Uy),
+                GetEquation(element.StartNode.Id, DofType.Rz),
+                GetEquation(element.EndNode.Id, DofType.Ux),
+                GetEquation(element.EndNode.Id, DofType.Uy),
+                GetEquation(element.EndNode.Id, DofType.Rz)
             };
         }
     }

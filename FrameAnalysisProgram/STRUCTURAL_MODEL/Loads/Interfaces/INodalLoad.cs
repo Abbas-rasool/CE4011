@@ -1,4 +1,4 @@
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces
 {
     /// <summary>
     /// Interface for loads applied at nodes (joints).

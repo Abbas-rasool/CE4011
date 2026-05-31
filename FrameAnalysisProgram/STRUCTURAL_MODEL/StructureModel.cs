@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL
 {
@@ -16,6 +17,13 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
         public List<SupportCondition> Supports { get; }
         public List<JointLoad> Loads { get; }
 
+        /// <summary>
+        /// Loads applied along members (distributed, point-on-span, temperature).
+        /// Assembled into the load vector as equivalent nodal loads and added back
+        /// during element end-force recovery.
+        /// </summary>
+        public List<IMemberLoad> MemberLoads { get; }
+
         public StructureModel()
         {
             Nodes = new List<Node>();
@@ -24,6 +32,7 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
             Sections = new List<SectionProperty>();
             Supports = new List<SupportCondition>();
             Loads = new List<JointLoad>();
+            MemberLoads = new List<IMemberLoad>();
         }
     }
 }

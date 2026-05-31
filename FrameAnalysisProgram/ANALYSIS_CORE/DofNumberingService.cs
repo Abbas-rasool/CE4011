@@ -28,7 +28,9 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             MarkRestrainedDofs(model, equationNumbers);
             int numberOfEquations = AssignActiveEquationNumbers(equationNumbers);
 
-            return new DofMap(equationNumbers, numberOfEquations);
+            var dofMap = new DofMap(equationNumbers, numberOfEquations);
+
+            return dofMap;
         }
 
         private void MarkRestrainedDofs(StructureModel model, int[,] equationNumbers)

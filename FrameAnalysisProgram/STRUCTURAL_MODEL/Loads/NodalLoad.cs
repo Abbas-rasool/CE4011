@@ -1,4 +1,7 @@
 using System;
+using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
+using Matrix_Library.MAIN_TYPES;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL
 {
@@ -48,9 +51,9 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
 
             int nodeId = Node.Id;
 
-            int eqUx = dofMap.GetEquation(nodeId, 0);
-            int eqUy = dofMap.GetEquation(nodeId, 1);
-            int eqRz = dofMap.GetEquation(nodeId, 2);
+            int eqUx = dofMap.GetEquation(nodeId, DofType.Ux);
+            int eqUy = dofMap.GetEquation(nodeId, DofType.Uy);
+            int eqRz = dofMap.GetEquation(nodeId, DofType.Rz);
 
             if (eqUx != 0)
                 globalLoadVector.AddToEntry(eqUx - 1, Fx);

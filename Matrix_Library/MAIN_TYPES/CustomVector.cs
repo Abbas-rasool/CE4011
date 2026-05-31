@@ -6,7 +6,7 @@ namespace Matrix_Library.MAIN_TYPES
 {
     public class CustomVector
     {
-        private double[] _values;
+        private readonly double[] _values;
 
         public int Length => _values.Length;
 

@@ -73,8 +73,8 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             if (input.MaterialTable.GetLength(1) != 1)
                 throw new InvalidOperationException("MaterialTable must have 1 column: [ElasticModulus].");
 
-            if (input.SectionTable.GetLength(1) != 2)
-                throw new InvalidOperationException("SectionTable must have 2 columns: [Area, MomentOfInertia].");
+            if (input.SectionTable.GetLength(1) != 3)
+                throw new InvalidOperationException("SectionTable must have 3 columns: [Width, Length, MomentOfInertia].");
 
             if (input.SupportTable.GetLength(1) != 4)
                 throw new InvalidOperationException("SupportTable must have 4 columns: [NodeId, Rx, Ry, Rz].");
@@ -133,10 +133,11 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             for (int i = 0; i < sectionCount; i++)
             {
                 int sectionId = i + 1;
-                double area = input.SectionTable[i, 0];
-                double momentOfInertia = input.SectionTable[i, 1];
+                double width = input.SectionTable[i, 0];
+                double length = input.SectionTable[i, 1];
+                double momentOfInertia = input.SectionTable[i, 2];
 
-                SectionProperty section = new SectionProperty(sectionId, area, momentOfInertia);
+                SectionProperty section = new SectionProperty(sectionId, width, length, momentOfInertia);
 
                 model.Sections.Add(section);
                 sectionMap.Add(sectionId, section);

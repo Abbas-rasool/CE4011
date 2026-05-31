@@ -40,9 +40,10 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
 
         /// <summary>
         /// Section property table.
-        /// Columns: [Area, MomentOfInertia]
+        /// Columns: [Width, Length, MomentOfInertia]
         /// Row index + 1 = Section ID
-        /// Units: Area = length^2, I = length^4
+        /// Units: Width = length, Length(depth) = length, I = length^4
+        /// Area is derived as Width × Length.
         /// </summary>
         public required double[,] SectionTable { get; set; }
 

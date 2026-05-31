@@ -1,4 +1,7 @@
 using System;
+using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
+using Matrix_Library.MAIN_TYPES;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL
 {
@@ -42,17 +45,17 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
         /// </summary>
         public double MemberDepth { get; }
 
-        public TemperatureLoad(
-            FrameElement2D element,
-            double uniformTemperatureChange,
-            double temperatureGradient,
-            double thermalExpansionCoeff,
-            double memberDepth)
+        public TemperatureLoad(FrameElement2D element, double uniformTemperatureChange, double temperatureGradient, double thermalExpansionCoeff, double memberDepth)
         {
             Element = element ?? throw new ArgumentNullException(nameof(element));
+
             UniformTemperatureChange = uniformTemperatureChange;
             TemperatureGradient = temperatureGradient;
             ThermalExpansionCoefficient = thermalExpansionCoeff;
+
+            if (memberDepth <= 0.0)
+                throw new ArgumentException("Member depth must be positive.", nameof(memberDepth));
+
             MemberDepth = memberDepth;
         }
 
@@ -63,53 +66,37 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
             if (dofMap == null)
                 throw new ArgumentNullException(nameof(dofMap));
 
-            double length = Element.Length;
+            double[] equivalentLoads = Element.GetEquivalentGlobalNodalLoads(GetLocalFixedEndForces());
+            int[] dofIndices = Element.GetGlobalDofIndices(dofMap);
 
-            // Axial force from uniform temperature change
-            // N = E * A * α * T_u
-            double EA = Element.Material.ElasticModulus * Element.Section.Area;
-            double axialForce = EA * ThermalExpansionCoefficient * UniformTemperatureChange;
-
-            // Moment from temperature gradient
-            // M = E * I * α * ΔT / h
-            // where h is member depth
-            double EI = Element.Material.ElasticModulus * Element.Section.MomentOfInertia;
-            double moment = EI * ThermalExpansionCoefficient * TemperatureGradient / MemberDepth;
-
-            // Distribute axial force and moment to nodes
-            // For symmetric loading, forces are split
-            AssembleAtStartNode(globalLoadVector, dofMap, axialForce, moment);
-            AssembleAtEndNode(globalLoadVector, dofMap, -axialForce, moment);
+            for (int i = 0; i < 6; i++)
+            {
+                int eq = dofIndices[i];
+                if (eq != 0)
+                    globalLoadVector.AddToEntry(eq - 1, equivalentLoads[i]);
+            }
         }
 
-        private void AssembleAtStartNode(
-            CustomVector globalLoadVector,
-            DofMap dofMap,
-            double axialForce,
-            double moment)
+        public double[] GetLocalFixedEndForces()
         {
-            int eqX = dofMap.GetEquation(Element.StartNode.Id, 0);
-            int eqRz = dofMap.GetEquation(Element.StartNode.Id, 2);
+            double E = Element.Material.ElasticModulus;
+            double A = Element.Section.Area;
+            double I = Element.Section.MomentOfInertia;
 
-            if (eqX != 0)
-                globalLoadVector.AddToEntry(eqX - 1, axialForce);
-            if (eqRz != 0)
-                globalLoadVector.AddToEntry(eqRz - 1, moment);
-        }
+            // Restrained axial force from uniform temperature change: N = E A α T_u.
+            double axialForce = E * A * ThermalExpansionCoefficient * UniformTemperatureChange;
 
-        private void AssembleAtEndNode(
-            CustomVector globalLoadVector,
-            DofMap dofMap,
-            double axialForce,
-            double moment)
-        {
-            int eqX = dofMap.GetEquation(Element.EndNode.Id, 0);
-            int eqRz = dofMap.GetEquation(Element.EndNode.Id, 2);
+            // Restrained end moment from temperature gradient: M = E I α ΔT / h,
+            // applied as equal and opposite fixed-end moments (constant curvature).
+            double moment = E * I * ThermalExpansionCoefficient * TemperatureGradient / MemberDepth;
 
-            if (eqX != 0)
-                globalLoadVector.AddToEntry(eqX - 1, axialForce);
-            if (eqRz != 0)
-                globalLoadVector.AddToEntry(eqRz - 1, moment);
+            double[] f = new double[6];
+            f[0] = axialForce;
+            f[3] = -axialForce;
+            f[2] = moment;
+            f[5] = -moment;
+
+            return f;
         }
     }
 }

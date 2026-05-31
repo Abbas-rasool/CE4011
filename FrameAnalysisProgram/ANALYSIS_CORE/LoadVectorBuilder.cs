@@ -1,5 +1,6 @@
 ﻿using System;
 using FrameAnalysisProgram.STRUCTURAL_MODEL;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
 
 namespace FrameAnalysisProgram.ANALYSIS_CORE
@@ -42,6 +43,13 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
                 AssembleJointLoad(globalLoadVector, load, dofMap);
             }
 
+            // Member (span) loads contribute equivalent nodal loads, derived from
+            // each load's fixed-end forces via the element (release-aware).
+            foreach (IMemberLoad memberLoad in model.MemberLoads)
+            {
+                memberLoad.AssembleIntoVector(globalLoadVector, dofMap, model);
+            }
+
             return globalLoadVector;
         }
 
@@ -52,9 +60,9 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
         {
             int nodeId = load.Node.Id;
 
-            int eqUx = dofMap.GetEquation(nodeId, 0);
-            int eqUy = dofMap.GetEquation(nodeId, 1);
-            int eqRz = dofMap.GetEquation(nodeId, 2);
+            int eqUx = dofMap.GetEquation(nodeId, DofType.Ux);
+            int eqUy = dofMap.GetEquation(nodeId, DofType.Uy);
+            int eqRz = dofMap.GetEquation(nodeId, DofType.Rz);
 
             if (eqUx != 0)
                 globalLoadVector.AddToEntry(eqUx - 1, load.Fx);

@@ -1,4 +1,7 @@
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+using FrameAnalysisProgram.ANALYSIS_CORE;
+using Matrix_Library.MAIN_TYPES;
+
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces
 {
     /// <summary>
     /// Base interface for all load types.

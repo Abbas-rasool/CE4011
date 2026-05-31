@@ -15,10 +15,23 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
         public int Id { get; }
 
         /// <summary>
+        /// Section width.
+        /// Units: length
+        /// </summary>
+        public double Width { get; }
+
+        /// <summary>
+        /// Section height/depth.
+        /// Units: length
+        /// </summary>
+        public double Length { get; }
+
+        /// <summary>
         /// Cross-sectional area.
+        /// Computed automatically as Width × Length.
         /// Units: length^2
         /// </summary>
-        public double Area { get; }
+        public double Area => Width * Length;
 
         /// <summary>
         /// Second moment of area about the out-of-plane axis.
@@ -26,10 +39,15 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL
         /// </summary>
         public double MomentOfInertia { get; }
 
-        public SectionProperty(int id, double area, double momentOfInertia)
+        public SectionProperty(
+            int id,
+            double width,
+            double length,
+            double momentOfInertia)
         {
             Id = id;
-            Area = area;
+            Width = width;
+            Length = length;
             MomentOfInertia = momentOfInertia;
         }
     }
