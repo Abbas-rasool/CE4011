@@ -10,4 +10,8 @@
     <Folder Include="STORAGE\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CSparse" Version="4.3.0" />
+  </ItemGroup>
+
 </Project>

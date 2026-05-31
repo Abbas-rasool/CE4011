@@ -17,6 +17,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
         private readonly ILinearSolver _linearSolver;
         private readonly DisplacementMapper _displacementMapper;
         private readonly ElementForceRecovery _elementForceRecovery;
+        private readonly ReactionRecovery _reactionRecovery;
 
         public FrameAnalyzer(
             DofNumberingService dofNumberingService,
@@ -24,7 +25,8 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             LoadVectorBuilder loadVectorBuilder,
             ILinearSolver linearSolver,
             DisplacementMapper displacementMapper,
-            ElementForceRecovery elementForceRecovery)
+            ElementForceRecovery elementForceRecovery,
+            ReactionRecovery reactionRecovery)
         {
             _dofNumberingService = dofNumberingService ?? throw new ArgumentNullException(nameof(dofNumberingService));
             _globalStiffnessAssembler = globalStiffnessAssembler ?? throw new ArgumentNullException(nameof(globalStiffnessAssembler));
@@ -32,6 +34,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             _linearSolver = linearSolver ?? throw new ArgumentNullException(nameof(linearSolver));
             _displacementMapper = displacementMapper ?? throw new ArgumentNullException(nameof(displacementMapper));
             _elementForceRecovery = elementForceRecovery ?? throw new ArgumentNullException(nameof(elementForceRecovery));
+            _reactionRecovery = reactionRecovery ?? throw new ArgumentNullException(nameof(reactionRecovery));
         }
 
         public FrameAnalysisResult Analyze(StructureModel model)
@@ -58,13 +61,16 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
                 dofMap,
                 globalDisplacementVector);
 
+            List<NodalReaction> reactions = _reactionRecovery.Compute(model, elementEndForces);
+
             return new FrameAnalysisResult(
                 dofMap,
                 globalStiffnessMatrix,
                 globalLoadVector,
                 globalDisplacementVector,
                 nodalDisplacements,
-                elementEndForces);
+                elementEndForces,
+                reactions);
         }
     }
 }

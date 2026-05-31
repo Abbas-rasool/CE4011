@@ -1,3 +1,5 @@
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
+
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces
 {
     /// <summary>

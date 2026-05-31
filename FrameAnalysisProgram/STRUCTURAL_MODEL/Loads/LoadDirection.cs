@@ -1,4 +1,4 @@
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads
 {
     /// <summary>
     /// Enumeration for load direction in global coordinates.

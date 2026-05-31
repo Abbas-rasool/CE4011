@@ -1,7 +1,8 @@
-﻿using System;
-using FrameAnalysisProgram.ANALYSIS_CORE;
+﻿using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Properties;
 
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Elements
 {
 /// <summary>
 /// 2D truss element with 2 DOFs per node: Ux, Uy (no rotation).
@@ -32,7 +33,7 @@ public class TrussElement2D : StructuralElement2D
     /// Forms the 4x4 rotation matrix.
     /// Relation: {d_local} = [R] {d_global}
     /// </summary>
-    public double[,] GetRotationMatrix()
+    public override double[,] GetRotationMatrix()
     {
         double c = CosX;
         double s = SinX;
@@ -84,17 +85,14 @@ public class TrussElement2D : StructuralElement2D
         return MultiplyMatrixMatrix(MultiplyMatrixMatrix(RT, kL), R);
     }
 
-    public override int[] GetGlobalDofIndices(DofMap dofMap)
+    public override (int NodeId, DofType Dof)[] GetDofAddresses()
     {
-        if (dofMap == null)
-            throw new ArgumentNullException(nameof(dofMap));
-
-        return new[]
+        return new (int, DofType)[]
         {
-            dofMap.GetEquation(StartNode.Id, (int)DofType.Ux),
-            dofMap.GetEquation(StartNode.Id, (int)DofType.Uy),
-            dofMap.GetEquation(EndNode.Id,   (int)DofType.Ux),
-            dofMap.GetEquation(EndNode.Id,   (int)DofType.Uy)
+            (StartNode.Id, DofType.Ux),
+            (StartNode.Id, DofType.Uy),
+            (EndNode.Id,   DofType.Ux),
+            (EndNode.Id,   DofType.Uy)
         };
     }
 

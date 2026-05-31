@@ -1,7 +1,8 @@
-﻿using System;
-using FrameAnalysisProgram.ANALYSIS_CORE;
+﻿using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Properties;
 
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Elements
 {
 public abstract class StructuralElement2D
 {
@@ -74,10 +75,19 @@ public abstract class StructuralElement2D
     public abstract double[,] GetGlobalStiffnessMatrix();
 
     /// <summary>
-    /// Global equation numbers for each DOF of this element,
-    /// ordered to match the local stiffness matrix rows/columns.
+    /// Rotation matrix transforming global to local coordinates.
+    /// Relation: {d_local} = [R] {d_global}. Size depends on element type
+    /// (6x6 for frame, 4x4 for truss).
     /// </summary>
-    public abstract int[] GetGlobalDofIndices(DofMap dofMap);
+    public abstract double[,] GetRotationMatrix();
+
+    /// <summary>
+    /// The (node, DOF-type) address of each local DOF, in the same order as
+    /// the rows/columns of the local stiffness matrix. This is the single
+    /// element-specific definition of connectivity; the size-agnostic helpers
+    /// below are derived from it.
+    /// </summary>
+    public abstract (int NodeId, DofType Dof)[] GetDofAddresses();
 
     /// <summary>
     /// Transforms a global element displacement vector to local coordinates.
@@ -89,6 +99,24 @@ public abstract class StructuralElement2D
     // -------------------------------------------------------------------------
     // Concrete shared methods — same logic for all element types
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Global equation numbers for each DOF of this element, ordered to match
+    /// the local stiffness matrix. Equation 0 means a restrained / inactive DOF.
+    /// </summary>
+    public int[] GetGlobalDofIndices(DofMap dofMap)
+    {
+        if (dofMap == null)
+            throw new ArgumentNullException(nameof(dofMap));
+
+        (int NodeId, DofType Dof)[] addresses = GetDofAddresses();
+        int[] indices = new int[addresses.Length];
+
+        for (int i = 0; i < addresses.Length; i++)
+            indices[i] = dofMap.GetEquation(addresses[i].NodeId, addresses[i].Dof);
+
+        return indices;
+    }
 
     /// <summary>
     /// Extracts this element's DOF values from the full solution vector
@@ -109,6 +137,36 @@ public abstract class StructuralElement2D
         }
 
         return displacements;
+    }
+
+    /// <summary>
+    /// Extracts this element's global DOF values from the nodal displacement
+    /// matrix (rows = Node ID - 1; columns = [Ux, Uy, Rz]).
+    /// </summary>
+    public double[] GetGlobalDisplacementVector(double[,] nodalDisplacements)
+    {
+        if (nodalDisplacements == null)
+            throw new ArgumentNullException(nameof(nodalDisplacements));
+
+        (int NodeId, DofType Dof)[] addresses = GetDofAddresses();
+        double[] displacements = new double[addresses.Length];
+
+        for (int i = 0; i < addresses.Length; i++)
+            displacements[i] = nodalDisplacements[addresses[i].NodeId - 1, (int)addresses[i].Dof];
+
+        return displacements;
+    }
+
+    /// <summary>
+    /// Transforms a local end-force vector to global coordinates.
+    /// Relation: {f_global} = [R]^T {f_local}
+    /// </summary>
+    public double[] GetGlobalEndForces(double[] localEndForces)
+    {
+        if (localEndForces == null)
+            throw new ArgumentNullException(nameof(localEndForces));
+
+        return MultiplyMatrixVector(Transpose(GetRotationMatrix()), localEndForces);
     }
 
     /// <summary>

@@ -1,9 +1,9 @@
-using System;
 using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
 
-namespace FrameAnalysisProgram.STRUCTURAL_MODEL
+namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads
 {
     /// <summary>
     /// Represents a nodal load (point load at a joint).
