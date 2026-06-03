@@ -236,12 +236,13 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             Console.WriteLine("========================================");
             Console.WriteLine("SUPPORTS");
             Console.WriteLine("========================================");
-            Console.WriteLine("Node\tUx\tUy\tRz");
+            Console.WriteLine("Node\tUx\tUy\tRz\tSettleX\tSettleY\tSettleRz");
 
             foreach (SupportCondition support in model.Supports)
             {
                 Console.WriteLine(
-                    $"{support.Node.Id}\t{BoolToCode(support.RestrainsUx)}\t{BoolToCode(support.RestrainsUy)}\t{BoolToCode(support.RestrainsRz)}");
+                    $"{support.Node.Id}\t{BoolToCode(support.RestrainsUx)}\t{BoolToCode(support.RestrainsUy)}\t{BoolToCode(support.RestrainsRz)}" +
+                    $"\t{support.SettlementUx:G6}\t{support.SettlementUy:G6}\t{support.SettlementRz:G6}");
             }
         }
 

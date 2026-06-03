@@ -5,6 +5,7 @@ using FrameAnalysisProgram.STRUCTURAL_MODEL;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Properties;
 using Matrix_Library.SOLVERS;
 using Xunit;
@@ -150,6 +151,74 @@ namespace FEMTestProject
             Assert.True(Math.Abs(brace[0]) > 1.0, "Brace should carry a non-trivial axial force.");
         }
 
+        // --- REGRESSION TEST 4: THERMAL (axially restrained bar, uniform heating) ---
+        [Fact]
+        public void Thermal_AxiallyRestrainedBar_UniformHeating_DevelopsExpectedAxialForce()
+        {
+            const double E = 200e9, A = 0.02, alpha = 1.2e-5, dT = 50.0, L = 4.0;
+
+            var mat = new Material(1, E);
+            var sec = new SectionProperty(1, 0.2, 0.1, 0.0001); // A = 0.02
+            var n1 = new Node(1, 0.0, 0.0);
+            var n2 = new Node(2, L, 0.0);
+
+            var model = new StructureModel();
+            model.Nodes.Add(n1);
+            model.Nodes.Add(n2);
+
+            var element = new FrameElement2D(1, n1, n2, mat, sec);
+            model.Elements.Add(element);
+
+            // Both ends axially restrained (n1 fully fixed; n2 restrains Ux only).
+            model.Supports.Add(new SupportCondition(n1, true, true, true));
+            model.Supports.Add(new SupportCondition(n2, true, false, false));
+
+            // Uniform temperature rise on the member (no gradient).
+            model.MemberLoads.Add(new TemperatureLoad(element, dT, 0.0, alpha, 0.1));
+
+            FrameAnalysisResult result = Analyze(model);
+
+            // Fully restrained axial bar: N = E * A * alpha * dT.
+            double expectedAxial = E * A * alpha * dT;
+            double[] f = result.ElementEndForces.Single(e => e.Element.Id == 1).LocalEndForces;
+            AssertClose(expectedAxial, Math.Abs(f[0]), RelTol);
+
+            // Thermal effect is self-equilibrated: reactions sum to zero.
+            AssertGlobalEquilibrium(model, result);
+        }
+
+        // --- REGRESSION TEST 5: SETTLEMENT (propped cantilever, prop settles) ---
+        [Fact]
+        public void Settlement_ProppedCantilever_PropSettles_MatchesTipStiffness()
+        {
+            const double E = 200e9, I = 0.0001, L = 3.0, delta = 0.005; // 5 mm
+
+            var mat = new Material(1, E);
+            var sec = new SectionProperty(1, 0.2, 0.1, I);
+            var n1 = new Node(1, 0.0, 0.0);
+            var n2 = new Node(2, L, 0.0);
+
+            var model = new StructureModel();
+            model.Nodes.Add(n1);
+            model.Nodes.Add(n2);
+            model.Elements.Add(new FrameElement2D(1, n1, n2, mat, sec));
+
+            model.Supports.Add(new SupportCondition(n1, true, true, true));                  // fixed
+            model.Supports.Add(new SupportCondition(n2, false, true, false, 0.0, -delta, 0.0)); // roller, settles down
+
+            FrameAnalysisResult result = Analyze(model);
+
+            // The prescribed settlement is reproduced exactly at the restrained DOF.
+            AssertClose(-delta, result.NodalDisplacements[1, 1], RelTol); // node 2 Uy
+
+            // Forcing a cantilever tip by delta requires the tip stiffness 3EI/L^3.
+            double expectedPropReaction = 3.0 * E * I * delta / (L * L * L);
+            NodalReaction r2 = result.Reactions.Single(r => r.NodeId == 2);
+            AssertClose(expectedPropReaction, Math.Abs(r2.Fy), RelTol);
+
+            AssertGlobalEquilibrium(model, result);
+        }
+
         // -------------------------------------------------------------------
         // Helpers
         // -------------------------------------------------------------------
@@ -162,6 +231,7 @@ namespace FEMTestProject
                 new DofNumberingService(),
                 new GlobalStiffnessAssembler(),
                 new LoadVectorBuilder(),
+                new SettlementLoadBuilder(),
                 new CSparseCholeskySolver(),
                 displacementMapper,
                 new ElementForceRecovery(displacementMapper),

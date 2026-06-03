@@ -21,6 +21,7 @@ namespace FAP
                 Console.WriteLine("2. Manual Console Entry (Quick Case)");
                 Console.WriteLine("3. Build Portal Frame Input (with member load)");
                 Console.WriteLine("4. Two-Bar Truss Example");
+                Console.WriteLine("5. Settlement + Thermal Demo");
 
                 Console.Write("\nSelect option: ");
 
@@ -42,6 +43,10 @@ namespace FAP
 
                     case "4":
                         input = BuildTrussExampleInput();
+                        break;
+
+                    case "5":
+                        input = BuildSettlementThermalInput();
                         break;
 
                     default:
@@ -74,6 +79,7 @@ namespace FAP
                 new DofNumberingService(),
                 new GlobalStiffnessAssembler(),
                 new LoadVectorBuilder(),
+                new SettlementLoadBuilder(),
                 new CSparseCholeskySolver(),
                 displacementMapper,
                 elementForceRecovery,
@@ -157,6 +163,31 @@ namespace FAP
             };
         }
 
+
+        // Propped cantilever demonstrating a support settlement and a thermal gradient.
+        private static StructureInputData BuildSettlementThermalInput()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 5, 0 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.3, 0.3, 0.000675 } }, // [Width, Length, I]
+                ElementTable = new int[,] { { 1, 2, 1, 1, 0, 0 } },      // single frame element
+
+                // Node 1 fully fixed; node 2 vertical roller that settles 5 mm down.
+                SupportTable = new int[,] { { 1, 1, 1, 1 }, { 2, 0, 1, 0 } },
+
+                // No applied joint loads.
+                LoadTable = new double[,] { { 1, 0, 0, 0 } },
+
+                // Support settlement: node 2 moves down 0.005 m. [NodeId, dUx, dUy, dRz]
+                SettlementTable = new double[,] { { 2, 0.0, -0.005, 0.0 } },
+
+                // Thermal gradient on the beam (top-bottom = 30), alpha = 1.2e-5, depth = 0.3.
+                // [ElementId, UniformTempChange, TemperatureGradient, alpha, depth]
+                TemperatureLoadTable = new double[,] { { 1, 0.0, 30.0, 1.2e-5, 0.3 } }
+            };
+        }
 
         // Statically determinate two-bar truss (apex point load).
         private static StructureInputData BuildTrussExampleInput()

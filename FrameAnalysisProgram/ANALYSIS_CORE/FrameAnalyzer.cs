@@ -14,6 +14,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
         private readonly DofNumberingService _dofNumberingService;
         private readonly GlobalStiffnessAssembler _globalStiffnessAssembler;
         private readonly LoadVectorBuilder _loadVectorBuilder;
+        private readonly SettlementLoadBuilder _settlementLoadBuilder;
         private readonly ILinearSolver _linearSolver;
         private readonly DisplacementMapper _displacementMapper;
         private readonly ElementForceRecovery _elementForceRecovery;
@@ -23,6 +24,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             DofNumberingService dofNumberingService,
             GlobalStiffnessAssembler globalStiffnessAssembler,
             LoadVectorBuilder loadVectorBuilder,
+            SettlementLoadBuilder settlementLoadBuilder,
             ILinearSolver linearSolver,
             DisplacementMapper displacementMapper,
             ElementForceRecovery elementForceRecovery,
@@ -31,6 +33,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             _dofNumberingService = dofNumberingService ?? throw new ArgumentNullException(nameof(dofNumberingService));
             _globalStiffnessAssembler = globalStiffnessAssembler ?? throw new ArgumentNullException(nameof(globalStiffnessAssembler));
             _loadVectorBuilder = loadVectorBuilder ?? throw new ArgumentNullException(nameof(loadVectorBuilder));
+            _settlementLoadBuilder = settlementLoadBuilder ?? throw new ArgumentNullException(nameof(settlementLoadBuilder));
             _linearSolver = linearSolver ?? throw new ArgumentNullException(nameof(linearSolver));
             _displacementMapper = displacementMapper ?? throw new ArgumentNullException(nameof(displacementMapper));
             _elementForceRecovery = elementForceRecovery ?? throw new ArgumentNullException(nameof(elementForceRecovery));
@@ -48,13 +51,16 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
 
             CustomVector globalLoadVector = _loadVectorBuilder.Build(model, dofMap);
 
+            // Support settlements enter as equivalent free-DOF loads: Ff - Kfr*Ur.
+            _settlementLoadBuilder.Apply(model, dofMap, globalLoadVector);
+
             _linearSolver.Factorize(globalStiffnessMatrix);
             CustomVector globalDisplacementVector = _linearSolver.Solve(globalLoadVector);
 
             double[,] nodalDisplacements = _displacementMapper.BuildNodalDisplacementMatrix(
                 dofMap,
                 globalDisplacementVector,
-                model.Nodes.Count);
+                model);
 
             List<ElementEndForceResult> elementEndForces = _elementForceRecovery.ComputeEndForces(
                 model,

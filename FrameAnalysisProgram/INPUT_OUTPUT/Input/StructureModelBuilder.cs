@@ -84,6 +84,12 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             if (input.PointLoadTable != null && input.PointLoadTable.GetLength(1) != 4)
                 throw new InvalidOperationException("PointLoadTable must have 4 columns: [ElementId, DistanceFromStart, Magnitude, Direction].");
 
+            if (input.SettlementTable != null && input.SettlementTable.GetLength(1) != 4)
+                throw new InvalidOperationException("SettlementTable must have 4 columns: [NodeId, dUx, dUy, dRz].");
+
+            if (input.TemperatureLoadTable != null && input.TemperatureLoadTable.GetLength(1) != 5)
+                throw new InvalidOperationException("TemperatureLoadTable must have 5 columns: [ElementId, UniformTemperatureChange, TemperatureGradient, ThermalExpansionCoefficient, MemberDepth].");
+
             if (input.MaterialTable.GetLength(1) != 1)
                 throw new InvalidOperationException("MaterialTable must have 1 column: [ElasticModulus].");
 
@@ -255,6 +261,22 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                     model.MemberLoads.Add(new PointLoad(frame, distance, magnitude, direction));
                 }
             }
+
+            if (input.TemperatureLoadTable != null)
+            {
+                int rows = input.TemperatureLoadTable.GetLength(0);
+                for (int i = 0; i < rows; i++)
+                {
+                    int elementId = (int)input.TemperatureLoadTable[i, 0];
+                    double uniformChange = input.TemperatureLoadTable[i, 1];
+                    double gradient = input.TemperatureLoadTable[i, 2];
+                    double expansionCoeff = input.TemperatureLoadTable[i, 3];
+                    double depth = input.TemperatureLoadTable[i, 4];
+
+                    FrameElement2D frame = ResolveFrameElement(elementMap, elementId, "Temperature");
+                    model.MemberLoads.Add(new TemperatureLoad(frame, uniformChange, gradient, expansionCoeff, depth));
+                }
+            }
         }
 
         private static FrameElement2D ResolveFrameElement(
@@ -277,6 +299,8 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             StructureModel model,
             Dictionary<int, Node> nodeMap)
         {
+            Dictionary<int, (double dUx, double dUy, double dRz)> settlementMap = BuildSettlementMap(input);
+
             int supportCount = input.SupportTable.GetLength(0);
 
             for (int i = 0; i < supportCount; i++)
@@ -290,14 +314,39 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                 bool restrainsUy = input.SupportTable[i, 2] == 1;
                 bool restrainsRz = input.SupportTable[i, 3] == 1;
 
+                settlementMap.TryGetValue(nodeId, out (double dUx, double dUy, double dRz) s);
+
                 SupportCondition support = new SupportCondition(
                     node,
                     restrainsUx,
                     restrainsUy,
-                    restrainsRz);
+                    restrainsRz,
+                    s.dUx,
+                    s.dUy,
+                    s.dRz);
 
                 model.Supports.Add(support);
             }
+        }
+
+        private static Dictionary<int, (double dUx, double dUy, double dRz)> BuildSettlementMap(StructureInputData input)
+        {
+            var map = new Dictionary<int, (double, double, double)>();
+
+            if (input.SettlementTable == null)
+                return map;
+
+            int rows = input.SettlementTable.GetLength(0);
+            for (int i = 0; i < rows; i++)
+            {
+                int nodeId = (int)input.SettlementTable[i, 0];
+                map[nodeId] = (
+                    input.SettlementTable[i, 1],
+                    input.SettlementTable[i, 2],
+                    input.SettlementTable[i, 3]);
+            }
+
+            return map;
         }
 
         private void BuildLoads(

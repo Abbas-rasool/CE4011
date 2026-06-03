@@ -30,12 +30,40 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry
         /// </summary>
         public bool RestrainsRz { get; }
 
-        public SupportCondition(Node node, bool restrainsUx, bool restrainsUy, bool restrainsRz)
+        /// <summary>
+        /// Prescribed support displacement (settlement) in global X.
+        /// Only meaningful when the matching DOF is restrained. Units: length.
+        /// </summary>
+        public double SettlementUx { get; }
+
+        /// <summary>
+        /// Prescribed support displacement (settlement) in global Y.
+        /// Only meaningful when the matching DOF is restrained. Units: length.
+        /// </summary>
+        public double SettlementUy { get; }
+
+        /// <summary>
+        /// Prescribed support rotation about global Z.
+        /// Only meaningful when the matching DOF is restrained. Units: radians.
+        /// </summary>
+        public double SettlementRz { get; }
+
+        public SupportCondition(
+            Node node,
+            bool restrainsUx,
+            bool restrainsUy,
+            bool restrainsRz,
+            double settlementUx = 0.0,
+            double settlementUy = 0.0,
+            double settlementRz = 0.0)
         {
             Node = node;
             RestrainsUx = restrainsUx;
             RestrainsUy = restrainsUy;
             RestrainsRz = restrainsRz;
+            SettlementUx = settlementUx;
+            SettlementUy = settlementUy;
+            SettlementRz = settlementRz;
         }
     }
 }

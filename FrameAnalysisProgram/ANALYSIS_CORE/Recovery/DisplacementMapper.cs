@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using FrameAnalysisProgram.STRUCTURAL_MODEL;
+using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
 using Matrix_Library.MAIN_TYPES;
 
 namespace FrameAnalysisProgram.ANALYSIS_CORE
@@ -13,11 +15,15 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
     ///   1 -> Uy
     ///   2 -> Rz
     ///
-    /// Restrained DOFs are assigned zero.
+    /// Free DOFs take their solved value; restrained DOFs take their prescribed
+    /// support displacement (zero unless a settlement is specified).
     /// </summary>
     public class DisplacementMapper
     {
-        public double[,] BuildNodalDisplacementMatrix(DofMap dofMap, CustomVector globalDisplacementVector, int nodeCount)
+        public double[,] BuildNodalDisplacementMatrix(
+            DofMap dofMap,
+            CustomVector globalDisplacementVector,
+            StructureModel model)
         {
             if (dofMap == null)
                 throw new ArgumentNullException(nameof(dofMap));
@@ -25,9 +31,11 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             if (globalDisplacementVector == null)
                 throw new ArgumentNullException(nameof(globalDisplacementVector));
 
-            if (nodeCount <= 0)
-                throw new ArgumentOutOfRangeException(nameof(nodeCount), "Node count must be positive.");
+            if (model == null)
+                throw new ArgumentNullException(nameof(model));
 
+            int nodeCount = model.Nodes.Count;
+            double[,] prescribed = BuildPrescribedDisplacements(model);
             double[,] nodalDisplacements = new double[nodeCount, 3];
 
             for (int nodeId = 1; nodeId <= nodeCount; nodeId++)
@@ -36,18 +44,32 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
                 {
                     int equation = dofMap.GetEquation(nodeId, localDof);
 
-                    if (equation == 0)
-                    {
-                        nodalDisplacements[nodeId - 1, localDof] = 0.0;
-                    }
-                    else
-                    {
-                        nodalDisplacements[nodeId - 1, localDof] = globalDisplacementVector.Get(equation - 1);
-                    }
+                    nodalDisplacements[nodeId - 1, localDof] = equation == 0
+                        ? prescribed[nodeId - 1, localDof]                 // restrained: prescribed settlement (0 if none)
+                        : globalDisplacementVector.Get(equation - 1);      // free: solved value
                 }
             }
 
             return nodalDisplacements;
+        }
+
+        /// <summary>
+        /// Builds a [node, dof] table of prescribed support displacements from the
+        /// model's supports. Entries are zero where no settlement is specified.
+        /// </summary>
+        public static double[,] BuildPrescribedDisplacements(StructureModel model)
+        {
+            double[,] prescribed = new double[model.Nodes.Count, 3];
+
+            foreach (SupportCondition support in model.Supports)
+            {
+                int row = support.Node.Id - 1;
+                prescribed[row, 0] = support.SettlementUx;
+                prescribed[row, 1] = support.SettlementUy;
+                prescribed[row, 2] = support.SettlementRz;
+            }
+
+            return prescribed;
         }
     }
 }

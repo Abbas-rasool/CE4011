@@ -42,7 +42,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             double[,] nodalDisplacements = _displacementMapper.BuildNodalDisplacementMatrix(
                 dofMap,
                 globalDisplacementVector,
-                model.Nodes.Count);
+                model);
 
             List<ElementEndForceResult> results = new List<ElementEndForceResult>();
 

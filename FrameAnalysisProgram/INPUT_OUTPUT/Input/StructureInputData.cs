@@ -78,5 +78,21 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
         /// Frame elements only.
         /// </summary>
         public double[,]? PointLoadTable { get; set; }
+
+        /// <summary>
+        /// Support settlement (prescribed displacement) table (optional).
+        /// Columns: [NodeId, dUx, dUy, dRz]
+        /// Units: length, length, radians. A value is only applied at a DOF that
+        /// is restrained in the support table.
+        /// </summary>
+        public double[,]? SettlementTable { get; set; }
+
+        /// <summary>
+        /// Thermal (temperature) load table (optional).
+        /// Columns: [ElementId, UniformTemperatureChange, TemperatureGradient,
+        ///           ThermalExpansionCoefficient, MemberDepth]
+        /// Frame elements only.
+        /// </summary>
+        public double[,]? TemperatureLoadTable { get; set; }
     }
 }
