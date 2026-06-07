@@ -2,7 +2,7 @@
 
 A custom, high-performance 2D structural analysis and design engine built from scratch in C#. This project demonstrates advanced software engineering principles, design patterns, and domain-driven design (DDD) applied to civil engineering computational tools.
 
-🚧 **Work in Progress:** This project is actively being developed as a graduate term project at METU. The core matrix solver and loading architecture are currently being finalized.
+🚧 **Work in Progress:** This project is actively being developed. The core matrix solver and loading architecture are currently being finalized.
 
 ## Architecture & Features
 
