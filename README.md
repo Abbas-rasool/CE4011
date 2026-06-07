@@ -26,14 +26,3 @@ A custom, high-performance 2D structural analysis and design engine built from s
 
 - **SOLID Principles:** High cohesion and loose coupling across separate projects (FrameAnalysisProgram, MemberDesigner, UI.Core)
 
-- **Factory Pattern:** Implemented in the loading layer (LoadingCaseFactory) for standardized, error-free structural load generation
-
-- **Interface Segregation:** Ensuring analysis solvers interact only with core mathematical abstractions rather than heavy, material-specific UI elements
-
-## Getting Started
-
-Clone the repository and explore the codebase to understand the implementation details and design decisions.
-
-## License
-
-This project is open source and available for educational and professional purposes.
