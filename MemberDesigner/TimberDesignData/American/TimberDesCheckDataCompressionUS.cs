@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using MemberDesigner.TimberDesignData.BaseClasses;
@@ -53,12 +53,22 @@ namespace MemberDesigner.TimberDesignData.American
         }
 
         /// <summary>
-        /// Detached summary returning a plain string.
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
         /// </summary>
         public override string GetSummary()
         {
-            return $"Compression ∥ — demand {ParallelDemandGross:0.##} / capacity {GrossCompressionCapacity:0.##} MPa " +
-                   $"(C_P = {ColumnStabilityFactor:0.###}); D/C = {GetUtilizationRatio():P0}";
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: fc / Fc' ≤ 1.0   (Fc' includes the column-stability factor C_P)",
+                $"Parallel demand stress (gross): {ParallelDemandGross:0.00}",
+                $"Gross compression capacity (Fc'): {GrossCompressionCapacity:0.00}",
+                $"Net compression capacity: {NetCompressionCapacity:0.00}",
+                $"Column-stability factor (C_P): {ColumnStabilityFactor:0.00}",
+                $"Slenderness (major / minor): {SlendernessRatioMajor:0.00} / {SlendernessRatioMinor:0.00}",
+                $"Perpendicular demand / capacity: {MaxPerpendicularDemand:0.00} / {NetCompressionCapacityPerpendicular:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
         }
 
         /// <summary>

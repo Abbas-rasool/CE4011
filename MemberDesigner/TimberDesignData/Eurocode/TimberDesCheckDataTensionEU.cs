@@ -35,15 +35,21 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetTitle() => "Design Tension Check";
 
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
         public override string GetSummary()
         {
             return string.Join(Environment.NewLine, new[]
             {
-                $"Design Tensile Strength (f_t,0,d): {DesignMatStrengthValue}",
-                $"Effective Area (A_ef): {NetSectionArea}",
-                $"Design Tensile Force (F): {MaxTensionForce}",
-                $"Design Tensile Stress (σ_t,0,d): {MaxTensionDemand}",
-                $"Design Tensile Stress Perpendicular (σ_t,90,d): {MaxTensionDemand90}"
+                "Formula: σt,0,d / ft,0,d ≤ 1.0   (ft,0,d = kmod·ft,0,k / γM)",
+                $"Design tensile strength (ft,0,d): {DesignMatStrengthValue:0.00}",
+                $"Effective area (A_ef): {NetSectionArea:0.00}",
+                $"Design tensile force (F): {MaxTensionForce:0.00}",
+                $"Design tensile stress (σt,0,d): {MaxTensionDemand:0.00}",
+                $"Design tensile stress perpendicular (σt,90,d): {MaxTensionDemand90:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
             });
         }
 

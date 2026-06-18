@@ -32,9 +32,25 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override eTimberDesignCheckType CheckType => eTimberDesignCheckType.Shear;
 
-        public override string GetTitle() => "";
+        public override string GetTitle() => "Shear Design (TR)";
 
-        public override string GetSummary() => throw new NotImplementedException();
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
+        public override string GetSummary()
+        {
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: τ / fv,d ≤ 1.0",
+                $"Demand shear stress (τ): {MaxShearDemand:0.00}",
+                $"Shear strength (fv,d): {ShearStrengthMaterial:0.00}",
+                $"Crack factor (K_cr): {K_cr:0.00}",
+                $"Rolling shear demand / strength: {MaxRollingShearDemand:0.00} / {ShearStrengthRollingMaterial:0.00}",
+                $"Torsion demand / capacity: {MaxTorsionStressDemand:0.00} / {TorsionalShearCapacity:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
+        }
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 

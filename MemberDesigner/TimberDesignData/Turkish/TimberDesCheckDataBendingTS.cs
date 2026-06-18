@@ -34,9 +34,26 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override eTimberDesignCheckType CheckType => eTimberDesignCheckType.Bending;
 
-        public override string GetTitle() => "";
+        public override string GetTitle() => "Bending Design (TR)";
 
-        public override string GetSummary() => throw new NotImplementedException();
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
+        public override string GetSummary()
+        {
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: σm / fm,d ≤ 1.0   (fm,d = Cyb·fm·CB·CE / ω)",
+                $"Material bending strength (fm): {MaterialStrength:0.00}",
+                $"Demand stress major (σm,major): {MajorDemandStress:0.00}",
+                $"Demand stress minor (σm,minor): {MinorDemandStress:0.00}",
+                $"Section buckling strength: {SectionBucklingStrength:0.00}",
+                $"Stability factor (Cyb): {C_yb:0.00}",
+                $"Check ratio major / minor: {MajorCheckFactor:0.00} / {MinorCheckFactor:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
+        }
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 

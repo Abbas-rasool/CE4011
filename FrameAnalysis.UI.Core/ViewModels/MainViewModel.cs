@@ -53,6 +53,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>The most recent design outcome (per-member results + messages), or null if never run.</summary>
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportDesignReportCommand))]
     private DesignOutcome? lastDesignOutcome;
 
     /// <summary>
@@ -160,6 +161,19 @@ public sealed partial class MainViewModel : ObservableObject
 
         MemberResultRequested?.Invoke(stations, $"Member {id}");
     }
+
+    /// <summary>
+    /// Raised when the user asks to export the design report. The View owns the file dialog and
+    /// PDF generation (WPF); the VM only signals intent and supplies the data via
+    /// <see cref="Document"/> and <see cref="LastDesignOutcome"/>.
+    /// </summary>
+    public event Action? DesignReportRequested;
+
+    private bool CanExportDesignReport => LastDesignOutcome is { Results.Count: > 0 };
+
+    /// <summary>Exports the latest design results to a PDF. Enabled once a design run has results.</summary>
+    [RelayCommand(CanExecute = nameof(CanExportDesignReport))]
+    private void ExportDesignReport() => DesignReportRequested?.Invoke();
 
     /// <summary>The load natures present in the model (shown on the Load Cases sheet).</summary>
     public IReadOnlyList<string> PresentLoadCases =>

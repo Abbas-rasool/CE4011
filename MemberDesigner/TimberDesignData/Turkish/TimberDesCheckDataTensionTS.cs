@@ -26,9 +26,23 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override eTimberDesignCheckType CheckType => eTimberDesignCheckType.Tension;
 
-        public override string GetTitle() => "";
+        public override string GetTitle() => "Tension Design (TR)";
 
-        public override string GetSummary() => throw new NotImplementedException();
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
+        public override string GetSummary()
+        {
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: σt / ft,d ≤ 1.0",
+                $"Demand stress (σt): {DemandStress:0.00}",
+                $"Tension resistance (ft,d): {MaterialResistance:0.00}",
+                $"Modification factor (C_B): {C_B:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
+        }
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 

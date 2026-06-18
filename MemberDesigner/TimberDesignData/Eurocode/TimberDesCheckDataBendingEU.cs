@@ -33,18 +33,22 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetTitle() => "Design Bending Check";
 
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
         public override string GetSummary()
         {
             return string.Join(Environment.NewLine, new[]
             {
-                $"Design Bending Strength (f_m,d): {DesignMatStrength}",
-                $"Reduction Factor (k_m): {KmInteractionFactor}",
-                $"Design Bending Moment (Major) (M_maj): {MajorDemandMoment}",
-                $"Design Bending Moment (Minor) (M_min): {MinorDemandMoment}",
-                $"Design Bending Stress (Major) (σ_m,Major): {MajorDemandStress}",
-                $"Design Bending Stress (Minor) (σ_m,Minor): {MinorDemandStress}",
-                $"Check Ratio (Major Axis) (R_Major): {MajorCheckFactor}",
-                $"Check Ratio (Minor Axis) (R_Minor): {MinorCheckFactor}"
+                "Formula: σm,y,d/fm,y,d + km·σm,z,d/fm,z,d ≤ 1.0   (and the km-swapped pair)",
+                $"Design bending strength (fm,d): {DesignMatStrength:0.00}",
+                $"Reduction factor (km): {KmInteractionFactor:0.00}",
+                $"Design bending stress major (σm,y,d): {MajorDemandStress:0.00}",
+                $"Design bending stress minor (σm,z,d): {MinorDemandStress:0.00}",
+                $"Check ratio major (R_major): {MajorCheckFactor:0.00}",
+                $"Check ratio minor (R_minor): {MinorCheckFactor:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
             });
         }
 

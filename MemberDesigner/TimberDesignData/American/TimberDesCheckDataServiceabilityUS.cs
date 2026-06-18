@@ -30,7 +30,7 @@ namespace MemberDesigner.TimberDesignData.American
         /// </summary>
         public override string GetSummary()
         {
-            throw new NotImplementedException();
+            return "Serviceability (deflection) check — not evaluated in this version.";
         }
 
         /// <summary>

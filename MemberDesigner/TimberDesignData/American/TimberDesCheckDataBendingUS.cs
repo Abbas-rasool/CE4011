@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using MemberDesigner.TimberDesignData.BaseClasses;
@@ -58,12 +58,22 @@ namespace MemberDesigner.TimberDesignData.American
         }
 
         /// <summary>
-        /// Fully detached summary returning a plain string (e.g., CSV, JSON, or plain text)
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
         /// </summary>
         public override string GetSummary()
         {
-            // Example formatting as a simple comma-separated or multi-line string
-            return $"Major Demand: {MajorDemandStress} psi | Major Capacity: {BendingDesignValueMajorAxis} psi | Status: {(SlendernessPassed ? "Passed" : "Failed")}";
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: fb / Fb' ≤ 1.0   (checked on both axes; Fb' = Fb·CD·CM·Ct·CL·CF·Cr)",
+                $"Major demand stress (fb,major): {MajorDemandStress:0.00}",
+                $"Major bending capacity (Fb',major): {BendingDesignValueMajorAxis:0.00}",
+                $"Minor demand stress (fb,minor): {MinorDemandStress:0.00}",
+                $"Minor bending capacity (Fb',minor): {BendingDesignValueMinorAxis:0.00}",
+                $"Beam stability factor (C_L major / minor): {C_L_Major:0.00} / {C_L_Minor:0.00}",
+                $"Slenderness OK: {(SlendernessPassed ? "yes" : "no")}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
         }
 
         /// <summary>

@@ -42,26 +42,30 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetTitle() => "Design Compression Check";
 
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
         public override string GetSummary()
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine($"Design Compressive Strength (f_c,0,d): {DesignStrengthMatParallel}");
-            sb.AppendLine($"Effective Area (A_ef): {NetSectionArea}");
-            sb.AppendLine($"Design Compressive Stress (σ_c,0,d): {MaxDemandParallel}");
-            sb.AppendLine($"Safety Factor (K_c90): {K_C90}");
-            sb.AppendLine($"Design Compressive Strength Perpendicular (f_c,90,d): {DesignStrengthMatPerpendicular}");
-            sb.AppendLine($"Effective Area (A_ef,90): {NetSectionArea90}");
-            sb.AppendLine($"Design Compressive Stress Perpendicular (σ_c,90,d): {MaxDemandPerpendicular}");
+            sb.AppendLine("Formula: σc,0,d / fc,0,d ≤ 1.0   (fc,0,d = kmod·fc,0,k / γM)");
+            sb.AppendLine($"Design compressive strength (fc,0,d): {DesignStrengthMatParallel:0.00}");
+            sb.AppendLine($"Effective area (A_ef): {NetSectionArea:0.00}");
+            sb.AppendLine($"Design compressive stress (σc,0,d): {MaxDemandParallel:0.00}");
+            sb.AppendLine($"Bearing factor (kc,90): {K_C90:0.00}");
+            sb.AppendLine($"Strength perpendicular (fc,90,d): {DesignStrengthMatPerpendicular:0.00}");
+            sb.AppendLine($"Stress perpendicular (σc,90,d): {MaxDemandPerpendicular:0.00}");
 
             if (AppliedAngleRad > 0)
             {
-                sb.AppendLine($"Load Application Angle (α): {AppliedAngleRad} rad");
-                sb.AppendLine($"Design Compressive Strength (Angled) (f_c,α,d): {DesignStrengthMatAngled}");
-                sb.AppendLine($"Effective Area (A_ef,α): {NetSectionAreaAngled}");
-                sb.AppendLine($"Compressive Stress (Angled) (σ_c,α,d): {MaxDemandAngled}");
+                sb.AppendLine($"Load angle (α): {AppliedAngleRad:0.00} rad");
+                sb.AppendLine($"Strength at angle (fc,α,d): {DesignStrengthMatAngled:0.00}");
+                sb.AppendLine($"Stress at angle (σc,α,d): {MaxDemandAngled:0.00}");
             }
 
+            sb.AppendLine($"Utilization (D/C): {GetUtilizationRatio():0.00}");
             return sb.ToString().TrimEnd();
         }
 

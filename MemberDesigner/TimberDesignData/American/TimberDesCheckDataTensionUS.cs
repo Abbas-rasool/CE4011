@@ -37,7 +37,13 @@ namespace MemberDesigner.TimberDesignData.American
         /// </summary>
         public override string GetSummary()
         {
-            throw new NotImplementedException();
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: ft / Ft' ≤ 1.0",
+                $"Tension demand stress (ft): {TensionDemandStress:0.00}",
+                $"Adjusted tension capacity (Ft'): {AdjustedTensionDesignValue:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
         }
 
         /// <summary>

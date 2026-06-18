@@ -53,9 +53,26 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override eTimberDesignCheckType CheckType => eTimberDesignCheckType.Compression;
 
-        public override string GetTitle() => "";
+        public override string GetTitle() => "Compression Design (TR)";
 
-        public override string GetSummary() => throw new NotImplementedException();
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
+        public override string GetSummary()
+        {
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: σc / fc,d ≤ 1.0   (fc,d includes the stability factor C_P)",
+                $"Demand stress parallel (σc): {DemandStressParallel:0.00}",
+                $"Major capacity (fc,d major): {MajorCapacity:0.00}",
+                $"Minor capacity (fc,d minor): {MinorCapacity:0.00}",
+                $"Stability factor (C_P major / minor): {C_P_Major:0.00} / {C_P_Minor:0.00}",
+                $"Slenderness (major / minor): {SlendernessMajor:0.00} / {SlendernessMinor:0.00}",
+                $"Perpendicular demand / strength: {DemandStressPerpendicular:0.00} / {MaterialStrengthPerp:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
+        }
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 

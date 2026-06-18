@@ -123,6 +123,9 @@
                 <Button Content="Run Design" Command="{Binding RunDesignCommand}" Padding="8,2" Margin="4,0,0,0"
                         ToolTipService.ShowOnDisabled="True"
                         ToolTip="Run Analysis first — design demands come from the analysis result. Re-run analysis after edits to unlock."/>
+                <Button Content="Export PDF" Command="{Binding ExportDesignReportCommand}" Padding="8,2" Margin="4,0,0,0"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="Run Design first — exports the member design report (titles, value summaries, D/C ratios, formulas, code references) as a PDF."/>
                 <TextBlock Text="Running…" Foreground="SeaGreen" VerticalAlignment="Center" Margin="6,0"
                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
                 <Separator/>

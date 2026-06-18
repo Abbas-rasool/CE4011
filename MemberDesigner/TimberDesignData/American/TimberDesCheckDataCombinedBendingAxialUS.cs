@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using MemberDesigner.TimberDesignData.BaseClasses;
@@ -66,11 +66,23 @@ namespace MemberDesigner.TimberDesignData.American
         }
 
         /// <summary>
-        /// Detached summary returning a plain string.
+        /// Plain-text value summary: governing interaction formula, key values (2 dp, internal
+        /// units), and the resulting utilization ratio.
         /// </summary>
         public override string GetSummary()
         {
-            return $"Combined bending + axial interaction; D/C = {GetUtilizationRatio():P0}";
+            bool compression = CompressionDemandStress > 0f;
+            return string.Join(Environment.NewLine, new[]
+            {
+                compression
+                    ? "Formula: (fc/Fc')² + fb1/[Fb1'(1 − fc/FcE1)] + fb2/[…] ≤ 1.0   (NDS Eq. 3.9-3)"
+                    : "Formula: ft/Ft' + fb/Fb* ≤ 1.0   and   (fb − ft)/Fb** ≤ 1.0   (NDS 3.9.1)",
+                $"Tension demand / capacity: {TensionDemandStress:0.00} / {AdjustedTensionDesignValue:0.00}",
+                $"Compression demand / capacity: {CompressionDemandStress:0.00} / {CompressionDemandCapacity:0.00}",
+                $"Major bending demand / capacity: {MajorDemandStressBending:0.00} / {BendingDesignValueMajorAxis:0.00}",
+                $"Minor bending demand / capacity: {MinorDemandStressBending:0.00} / {BendingDesignValueMinorAxis:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
         }
 
         /// <summary>

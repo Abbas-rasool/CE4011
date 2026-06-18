@@ -37,7 +37,13 @@ namespace MemberDesigner.TimberDesignData.American
         /// </summary>
         public override string GetSummary()
         {
-            throw new NotImplementedException();
+            return string.Join(Environment.NewLine, new[]
+            {
+                "Formula: fv = 1.5·V/A ≤ Fv'",
+                $"Max shear demand stress (fv): {MaxShearDemand:0.00}",
+                $"Shear capacity (Fv'): {MemberShearCapacityMat:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
+            });
         }
 
         /// <summary>

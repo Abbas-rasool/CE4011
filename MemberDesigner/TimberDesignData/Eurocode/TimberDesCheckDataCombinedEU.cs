@@ -59,64 +59,34 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetTitle() => "Design Combined Bending and Axial Check";
 
+        /// <summary>
+        /// Plain-text value summary: governing interaction formulas, key ratios (2 dp), and the
+        /// resulting utilization ratio.
+        /// </summary>
         public override string GetSummary()
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine("Combined Bending and Axial Tension");
-            sb.AppendLine($"Reduction Factor (k_m): {KmInteractionFactor}");
-            sb.AppendLine($"Interaction Ratio (Major Axis) (R_Major,t): {TensionCapacityLimitMajor}");
-            sb.AppendLine($"Interaction Ratio (Minor Axis) (R_Minor,t): {TensionCapacityLimitMinor}");
-            sb.AppendLine();
+            sb.AppendLine("Formula (tension): σt,0,d/ft,0,d + km·σm/fm,d ≤ 1.0   (EN 1995-1-1 §6.2.3)");
+            sb.AppendLine("Formula (compression): σc,0,d/(kc·fc,0,d) + σm,y/fm,y,d + km·σm,z/fm,z,d ≤ 1.0   (§6.3.2)");
+            sb.AppendLine($"Reduction factor (km): {KmInteractionFactor:0.00}");
+            sb.AppendLine($"Axial+bending tension ratio (major / minor): {TensionCapacityLimitMajor:0.00} / {TensionCapacityLimitMinor:0.00}");
+            sb.AppendLine($"Axial+bending compression ratio (major / minor): {CompressionCapacityLimitMajor:0.00} / {CompressionCapacityLimitMinor:0.00}");
+            sb.AppendLine($"Relative slenderness (λrel,y / λrel,z): {SigmaRelMajor:0.00} / {SigmaRelMinor:0.00}");
 
-            sb.AppendLine("Combined Bending and Axial Compression");
-            sb.AppendLine($"Compression Interaction Ratio (Major Axis) (R_Major,C): {CompressionCapacityLimitMajor}");
-            sb.AppendLine($"Compression Interaction Ratio (Minor Axis) (R_Minor,C): {CompressionCapacityLimitMinor}");
-            sb.AppendLine();
-
-            sb.AppendLine("Stability of Members");
-            sb.AppendLine($"Slenderness (Major Axis) (λ_major): {SlendernessRatioMajor}");
-            sb.AppendLine($"Slenderness (Minor Axis) (λ_minor): {SlendernessRatioMinor}");
-            sb.AppendLine($"Bending Slenderness Ratio (Major Axis) (λ_rel,Major): {SigmaRelMajor}");
-            sb.AppendLine($"Bending Slenderness Ratio (Minor Axis) (λ_rel,minor): {SigmaRelMinor}");
-
-            if (!IsExtraCheckNeeded)
+            if (IsExtraCheckNeeded)
             {
-                sb.AppendLine("Information: Where λ_rel,y ≤ 0.3 and λ_rel,z ≤ 0.3, no extra check is needed.");
+                sb.AppendLine($"Instability factor (kc,y / kc,z): {Kc_Major:0.00} / {Kc_Minor:0.00}");
+                sb.AppendLine($"Stability-adjusted ratio (major / minor): {CapacityCheckLimitCompMajor:0.00} / {CapacityCheckLimitCompMinor:0.00}");
             }
             else
             {
-                sb.AppendLine($"Imperfection Factor (β_c): {Beta_C}");
-                sb.AppendLine($"Intermediate Factor (Major Axis) (k_major): {K_Major}");
-                sb.AppendLine($"Intermediate Factor (Minor Axis) (k_minor): {K_Minor}");
-                sb.AppendLine($"Instability Factor (Major Axis) (k_c,major): {Kc_Major}");
-                sb.AppendLine($"Instability Factor (Minor Axis) (k_c,minor): {Kc_Minor}");
-                sb.AppendLine($"Stability Adjusted Interaction (Major Axis) (R_c,y): {CapacityCheckLimitCompMajor}");
-                sb.AppendLine($"Stability Adjusted Interaction (Minor Axis) (R_c,z): {CapacityCheckLimitCompMinor}");
+                sb.AppendLine("Note: λrel,y ≤ 0.3 and λrel,z ≤ 0.3 — no extra stability check required.");
             }
 
-            sb.AppendLine();
-            sb.AppendLine("Lateral Torsional Stability");
-            sb.AppendLine($"Stability Bending Stress (σ_m,crit): {σ_m_crit}");
-            sb.AppendLine($"Relative Slenderness for Bending (λ_rel,m): {SigmaRelMoment}");
-
-            string kCritEquation;
-            if (SigmaRelMoment <= 0.75)
-            {
-                kCritEquation = "k_crit = 1";
-            }
-            else if (SigmaRelMoment > 0.75 && SigmaRelMoment <= 1.4)
-            {
-                kCritEquation = "k_crit = 1.56 - 0.75 * λ_rel,m";
-            }
-            else
-            {
-                kCritEquation = "k_crit = 1 / λ_rel,m^2";
-            }
-
-            sb.AppendLine($"Lateral Buckling Stability Factor (k_crit): {K_crit}  [{kCritEquation}]");
-            sb.AppendLine($"Major Axis Moment Limit (LT Buckling) (f_major,crit): {MomentMajorAxisLimit}");
-            sb.AppendLine($"Stability-Adjusted Moment Ratio (R_m,crit): {CapacityCheckLimitMoment}");
+            sb.AppendLine($"Lateral-torsional factor (kcrit): {K_crit:0.00}");
+            sb.AppendLine($"LT-stability moment ratio (R_m,crit): {CapacityCheckLimitMoment:0.00}");
+            sb.AppendLine($"Utilization (D/C): {GetUtilizationRatio():0.00}");
 
             return sb.ToString().TrimEnd();
         }

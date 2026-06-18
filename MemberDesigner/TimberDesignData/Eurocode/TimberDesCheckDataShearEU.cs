@@ -45,23 +45,22 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetTitle() => "Design Shear Check";
 
+        /// <summary>
+        /// Plain-text value summary: governing formula, key values (2 dp, internal units),
+        /// and the resulting utilization ratio.
+        /// </summary>
         public override string GetSummary()
         {
             return string.Join(Environment.NewLine, new[]
             {
-                $"Design Material Strength (Shear) (f_v,d): {ShearStrengthMaterial}",
-                $"Design Material Strength (Rolling Shear) (f_v,r,d): {ShearStrengthRollingMaterial}",
-                $"Reduction Factor (K_cr): {K_cr}",
-                $"Effective Width (b_ef): {EffectiveWidth}",
-                $"Shear Area (A_v): {ShearArea}",
-                $"Applied Shear Force (F_v): {MaxShearForce}",
-                $"Major Demand Shear Stress (σ_v): {MaxShearStress}",
-                $"Rolling Shear Area (A_v,r): {ShearAreaRolling}",
-                $"Applied Rolling Shear Force (F_v,r): {MaxRollingShearForce}",
-                $"Major Demand Rolling Shear Stress (σ_v,r): {MaxRollingShearStress}",
-                $"Shape Reduction Factor (K_shape): {K_Shape}",
-                $"Design Material Strength (Torsion) (f_tor,d): {TorsionShearCapacity}",
-                $"Applied Torsion Stress (σ_tor,d): {MaxTorsionStressDemand}"
+                "Formula: τd / fv,d ≤ 1.0   (fv,d = kmod·fv,k / γM; b_ef = kcr·b)",
+                $"Design shear strength (fv,d): {ShearStrengthMaterial:0.00}",
+                $"Crack factor (kcr): {K_cr:0.00}",
+                $"Effective width (b_ef): {EffectiveWidth:0.00}",
+                $"Demand shear stress (τd): {MaxShearStress:0.00}",
+                $"Rolling shear demand / strength: {MaxRollingShearStress:0.00} / {ShearStrengthRollingMaterial:0.00}",
+                $"Torsion demand / capacity: {MaxTorsionStressDemand:0.00} / {TorsionShearCapacity:0.00}",
+                $"Utilization (D/C): {GetUtilizationRatio():0.00}"
             });
         }
 
