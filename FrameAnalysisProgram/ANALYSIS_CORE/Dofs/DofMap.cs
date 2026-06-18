@@ -63,5 +63,30 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
 
             return EquationNumbers[nodeId - 1, localDof];
         }
+
+        /// <summary>
+        /// Reverse lookup: finds the node and local DOF that own a given (1-based)
+        /// active equation number. Returns false if no active DOF maps to it.
+        /// </summary>
+        public bool TryGetLocation(int equationNumber, out int nodeId, out int localDof)
+        {
+            int nodeCount = EquationNumbers.GetLength(0);
+            for (int n = 0; n < nodeCount; n++)
+            {
+                for (int d = 0; d < 3; d++)
+                {
+                    if (EquationNumbers[n, d] == equationNumber)
+                    {
+                        nodeId = n + 1;
+                        localDof = d;
+                        return true;
+                    }
+                }
+            }
+
+            nodeId = 0;
+            localDof = -1;
+            return false;
+        }
     }
 }

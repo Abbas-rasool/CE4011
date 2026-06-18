@@ -67,7 +67,13 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+        {
+            double parallel = DesignStrengthMatParallel > 0 ? MaxDemandParallel / DesignStrengthMatParallel : 0;
+            double perp = DesignStrengthMatPerpendicular > 0 ? MaxDemandPerpendicular / DesignStrengthMatPerpendicular : 0;
+            double angled = DesignStrengthMatAngled > 0 ? MaxDemandAngled / DesignStrengthMatAngled : 0;
+            return Math.Max(parallel, Math.Max(perp, angled));
+        }
 
         #endregion
     }

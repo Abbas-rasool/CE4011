@@ -3,6 +3,7 @@ using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
+using StructuralLoads;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
 {
@@ -45,6 +46,11 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
         /// Units: length
         /// </summary>
         public double MemberDepth { get; }
+
+        /// <summary>
+        /// A temperature load is always a self-straining thermal action.
+        /// </summary>
+        public eLoadNature Nature => eLoadNature.Thermal;
 
         public TemperatureLoad(FrameElement2D element, double uniformTemperatureChange, double temperatureGradient, double thermalExpansionCoeff, double memberDepth)
         {

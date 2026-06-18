@@ -36,7 +36,7 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio() => Math.Max(MajorRatio, MinorRatio);
 
         #endregion
     }

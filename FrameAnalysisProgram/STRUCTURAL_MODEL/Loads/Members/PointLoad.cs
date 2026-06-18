@@ -3,6 +3,7 @@ using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
+using StructuralLoads;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
 {
@@ -34,25 +35,33 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
         /// </summary>
         public LoadDirection Direction { get; }
 
+        /// <summary>
+        /// The physical nature of this action (dead, live, wind, …). Defaults to
+        /// <see cref="eLoadNature.Dead"/> until the caller specifies it.
+        /// </summary>
+        public eLoadNature Nature { get; }
+
         public PointLoad(
             FrameElement2D element,
             double distanceFromStart,
             double magnitude,
-            LoadDirection direction)
+            LoadDirection direction,
+            eLoadNature nature = eLoadNature.Dead)
         {
             Element = element ?? throw new ArgumentNullException(nameof(element));
-            
+
             if (distanceFromStart < 0)
                 throw new ArgumentException("Distance from start must be non-negative.", nameof(distanceFromStart));
-            
+
             if (distanceFromStart > element.Length)
                 throw new ArgumentException(
-                    $"Distance from start ({distanceFromStart}) exceeds member length ({element.Length}).", 
+                    $"Distance from start ({distanceFromStart}) exceeds member length ({element.Length}).",
                     nameof(distanceFromStart));
 
             DistanceFromStart = distanceFromStart;
             Magnitude = magnitude;
             Direction = direction;
+            Nature = nature;
         }
 
         public void AssembleIntoVector(CustomVector globalLoadVector, DofMap dofMap, StructureModel model)

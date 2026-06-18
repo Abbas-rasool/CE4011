@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using MemberDesigner.DesignInputs.American;
 using MemberDesigner.TimberDesignData.BaseClasses;
+using StructuralLoads;
 using static MemberDesigner.Designers.Enums;
 
 namespace MemberDesigner.DesignChecks.Helpers

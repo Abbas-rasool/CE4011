@@ -94,18 +94,49 @@ namespace MemberDesigner.Designers
             ShortTermAction = 3,
             InstantaneousAction = 4
         }
+
+        /// <summary>
+        /// EN 338 (solid timber C/D classes) and EN 14080 (glulam GL classes) strength
+        /// classes. Used by EC5 and TR to look up characteristic material values.
+        /// </summary>
+        public enum eStrengthClass : byte
+        {
+            // EN 338 softwood
+            C14 = 0, C16 = 1, C18 = 2, C20 = 3, C22 = 4, C24 = 5,
+            C27 = 6, C30 = 7, C35 = 8, C40 = 9, C45 = 10, C50 = 11,
+            // EN 338 hardwood
+            D18 = 20, D24 = 21, D30 = 22, D35 = 23, D40 = 24, D50 = 25, D60 = 26, D70 = 27,
+            // EN 14080 glulam — homogeneous
+            GL20h = 40, GL22h = 41, GL24h = 42, GL26h = 43, GL28h = 44, GL30h = 45, GL32h = 46,
+            // EN 14080 glulam — combined
+            GL20c = 60, GL22c = 61, GL24c = 62, GL26c = 63, GL28c = 64, GL30c = 65, GL32c = 66
+        }
+
+        /// <summary>
+        /// NDS visually-graded solid-sawn species + commercial grade combinations. Used by US
+        /// to look up reference design values. (Solid sawn only this phase.)
+        /// </summary>
+        public enum eNdsSpeciesGrade : byte
+        {
+            DouglasFirLarch_SS = 0,
+            DouglasFirLarch_No1 = 1,
+            DouglasFirLarch_No2 = 2,
+            HemFir_SS = 10,
+            HemFir_No1 = 11,
+            HemFir_No2 = 12,
+            SprucePineFir_SS = 20,
+            SprucePineFir_No1 = 21,
+            SprucePineFir_No2 = 22,
+            SouthernPine_SS = 30,
+            SouthernPine_No1 = 31,
+            SouthernPine_No2 = 32
+        }
         #endregion
 
         #region American Code
         /// <summary>
         /// Shear Wall Enums
         /// </summary>
-        public enum eLoadingCombinationType
-        {
-            ASD = 1,
-            LRFD = 2
-        }
-
         public enum eSheathingMatType
         {
             /// <summary>
@@ -383,12 +414,6 @@ namespace MemberDesigner.Designers
             /// Utility grade timber, primarily for non-structural uses or temporary applications.
             /// </summary>
             Ut = 7
-        }
-
-        public enum eLoadCombinationType : byte
-        {
-            LRFD = 0,
-            ASD = 1
         }
 
         public enum eTimberMemberDesignArgument : byte

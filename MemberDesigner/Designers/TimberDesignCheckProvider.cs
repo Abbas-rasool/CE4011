@@ -14,10 +14,9 @@ namespace MemberDesigner.Designers
     {
 
         #region Constructor
-        public TimberDesignCheckProvider(TimberCheckTypeProvider checkTypeProvider)
+        public TimberDesignCheckProvider(TimberCheckTypeProvider checkTypeProvider, eTimberCode code)
         {
-            // Later I will have to set it using the data i get from MD!
-            _TimberCode = eTimberCode.EC5;
+            _TimberCode = code;
 
             _checks = new Dictionary<(eTimberDesignCheckType, eTimberCode), ITimberDesignCheck<ITimberDesignCheckInput, TimberDesignCheckData>>();
             _checkTypeProvider = checkTypeProvider;
@@ -85,6 +84,9 @@ namespace MemberDesigner.Designers
         {
             switch (checkType)
             {
+                case eTimberDesignCheckType.Parameters:
+                    return new TimberParametersCheckTS();
+
                 case eTimberDesignCheckType.Bending:
                     return new TimberDesCheckBendingTS();
 
@@ -155,8 +157,7 @@ namespace MemberDesigner.Designers
 
             var checkList = new List<ITimberDesignCheck<ITimberDesignCheckInput, TimberDesignCheckData>>();
 
-            // This should be called from MD later!!
-            var timberCode = eTimberCode.EC5;
+            var timberCode = _TimberCode;
 
             foreach (var checkType in requiredChecks)
             {

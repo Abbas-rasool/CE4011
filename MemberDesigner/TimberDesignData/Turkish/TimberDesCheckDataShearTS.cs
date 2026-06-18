@@ -38,7 +38,13 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+        {
+            double shear = ShearStrengthMaterial > 0 ? MaxShearDemand / ShearStrengthMaterial : 0;
+            double rolling = ShearStrengthRollingMaterial > 0 ? MaxRollingShearDemand / ShearStrengthRollingMaterial : 0;
+            double torsion = TorsionalShearCapacity > 0 ? MaxTorsionStressDemand / TorsionalShearCapacity : 0;
+            return Math.Max(shear, Math.Max(rolling, torsion));
+        }
 
         #endregion
     }

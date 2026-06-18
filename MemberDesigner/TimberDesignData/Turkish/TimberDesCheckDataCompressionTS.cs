@@ -59,7 +59,14 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+        {
+            double major = MajorCapacity > 0 ? DemandStressParallel / MajorCapacity : 0;
+            double minor = MinorCapacity > 0 ? DemandStressParallel / MinorCapacity : 0;
+            double perp = MaterialStrengthPerp > 0 ? DemandStressPerpendicular / MaterialStrengthPerp : 0;
+            double angled = AngledCapacity > 0 ? AngledDemandStress / AngledCapacity : 0;
+            return Math.Max(Math.Max(major, minor), Math.Max(perp, angled));
+        }
 
         #endregion
     }

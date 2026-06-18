@@ -123,7 +123,18 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+        {
+            double max = 0;
+            max = Math.Max(max, TensionCapacityLimitMajor);
+            max = Math.Max(max, TensionCapacityLimitMinor);
+            max = Math.Max(max, CompressionCapacityLimitMajor);
+            max = Math.Max(max, CompressionCapacityLimitMinor);
+            max = Math.Max(max, CapacityCheckLimitCompMajor);
+            max = Math.Max(max, CapacityCheckLimitCompMinor);
+            max = Math.Max(max, CapacityCheckLimitMoment);
+            return max;
+        }
 
         #endregion
     }

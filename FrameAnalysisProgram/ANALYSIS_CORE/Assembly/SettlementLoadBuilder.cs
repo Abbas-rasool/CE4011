@@ -22,8 +22,10 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
         {
             if (model == null)
                 throw new ArgumentNullException(nameof(model));
+
             if (dofMap == null)
                 throw new ArgumentNullException(nameof(dofMap));
+
             if (globalLoadVector == null)
                 throw new ArgumentNullException(nameof(globalLoadVector));
 
@@ -34,7 +36,6 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
                 int[] dofIndices = element.GetGlobalDofIndices(dofMap);          // 1-based; 0 = restrained
                 (int NodeId, DofType Dof)[] addresses = element.GetDofAddresses();
 
-                // Gather this element's settled (restrained, non-zero) local DOFs.
                 bool elementHasSettlement = false;
                 double[] localSettlement = new double[dofIndices.Length];
                 for (int b = 0; b < dofIndices.Length; b++)
@@ -55,7 +56,6 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
 
                 double[,] ke = element.GetGlobalStiffnessMatrix();
 
-                // Ff_a -= Ke[a, b] * Ur_b  for every free DOF a, settled DOF b.
                 for (int a = 0; a < dofIndices.Length; a++)
                 {
                     int equationA = dofIndices[a];

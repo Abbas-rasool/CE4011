@@ -1,4 +1,5 @@
 ﻿using MemberDesigner.DesignChecks;
+using StructuralLoads;
 using static MemberDesigner.Designers.Enums;
 
 namespace MemberDesigner.DesignInputs.American

@@ -32,7 +32,8 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+            => MaterialResistance > 0 ? DemandStress / MaterialResistance : 0;
 
         #endregion
     }

@@ -6,7 +6,16 @@ namespace Matrix_Library.SOLVERS
 {
     public class SparseLDLtSolver : ILinearSolver
     {
+        // Absolute threshold used only to decide whether a tiny off-diagonal
+        // contribution is worth storing/multiplying (a sparsity optimization).
         private const double Tolerance = 1e-12;
+
+        // Relative threshold for judging pivots. A stiffness matrix can have
+        // diagonal entries on the order of EA/L (1e8+), so an absolute pivot
+        // threshold is meaningless; we scale by the largest diagonal instead.
+        // Matches StiffnessSingularityDetector so the solver and the diagnostic
+        // agree on what "singular" means.
+        private const double RelativeTolerance = 1e-9;
 
         private SparseMatrix? _L;
         private double[]? _D;
@@ -26,6 +35,13 @@ namespace Matrix_Library.SOLVERS
             _L = new SparseMatrix(_size);
             _D = new double[_size];
             _isFactorized = false;
+
+            // Scale-aware pivot tolerance, judged relative to the largest diagonal.
+            double maxDiagonal = 0.0;
+            for (int i = 0; i < _size; i++)
+                maxDiagonal = Math.Max(maxDiagonal, Math.Abs(a.Get(i, i)));
+
+            double pivotTolerance = RelativeTolerance * (maxDiagonal > 0.0 ? maxDiagonal : 1.0);
 
             for (int i = 0; i < _size; i++)
             {
@@ -74,9 +90,13 @@ namespace Matrix_Library.SOLVERS
                     di -= lik * lik * _D[k];
                 }
 
-                if (Math.Abs(di) < Tolerance)
+                // A zero pivot means the matrix is singular (a mechanism /
+                // rigid-body mode); a negative pivot means it is not
+                // positive-definite. Both indicate an unstable structure, so
+                // reject any non-positive pivot (signed test, not Math.Abs).
+                if (di < pivotTolerance)
                     throw new InvalidOperationException(
-                        $"Zero pivot at DOF {i}. Structure may be unstable or improperly constrained.");
+                        $"Non-positive pivot at DOF {i}. Structure may be unstable or improperly constrained.");
 
                 _D[i] = di;
             }

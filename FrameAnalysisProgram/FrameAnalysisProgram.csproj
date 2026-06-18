@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Matrix_Library\Matrix_Library.csproj" />
+    <ProjectReference Include="..\StructuralLoads\StructuralLoads.csproj" />
   </ItemGroup>
 
 </Project>

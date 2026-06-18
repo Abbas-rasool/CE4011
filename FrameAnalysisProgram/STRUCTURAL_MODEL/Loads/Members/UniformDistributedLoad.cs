@@ -3,6 +3,7 @@ using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
+using StructuralLoads;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
 {
@@ -28,14 +29,22 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members
         /// </summary>
         public LoadDirection Direction { get; }
 
+        /// <summary>
+        /// The physical nature of this action (dead, live, wind, …). Defaults to
+        /// <see cref="eLoadNature.Dead"/> until the caller specifies it.
+        /// </summary>
+        public eLoadNature Nature { get; }
+
         public UniformDistributedLoad(
             FrameElement2D element,
             double magnitudePerLength,
-            LoadDirection direction)
+            LoadDirection direction,
+            eLoadNature nature = eLoadNature.Dead)
         {
             Element = element ?? throw new ArgumentNullException(nameof(element));
             MagnitudePerLength = magnitudePerLength;
             Direction = direction;
+            Nature = nature;
         }
 
         public void AssembleIntoVector(CustomVector globalLoadVector, DofMap dofMap, StructureModel model)

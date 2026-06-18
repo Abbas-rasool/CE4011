@@ -49,7 +49,8 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+            => DesignMatStrengthValue > 0 ? MaxTensionDemand / DesignMatStrengthValue : 0;
 
         #endregion
     }

@@ -2,6 +2,7 @@ using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Interfaces;
 using Matrix_Library.MAIN_TYPES;
+using StructuralLoads;
 
 namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads
 {
@@ -34,12 +35,19 @@ namespace FrameAnalysisProgram.STRUCTURAL_MODEL.Loads
         /// </summary>
         public double Mz { get; }
 
-        public NodalLoad(Node node, double fx, double fy, double mz)
+        /// <summary>
+        /// The physical nature of this action (dead, live, wind, …). Defaults to
+        /// <see cref="eLoadNature.Dead"/> until the caller specifies it.
+        /// </summary>
+        public eLoadNature Nature { get; }
+
+        public NodalLoad(Node node, double fx, double fy, double mz, eLoadNature nature = eLoadNature.Dead)
         {
             Node = node ?? throw new ArgumentNullException(nameof(node));
             Fx = fx;
             Fy = fy;
             Mz = mz;
+            Nature = nature;
         }
 
         public void AssembleIntoVector(CustomVector globalLoadVector, DofMap dofMap, StructureModel model)

@@ -1,0 +1,136 @@
+<Window x:Class="FrameAnalysis.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FrameAnalysis.UI"
+        xmlns:vm="clr-namespace:FrameAnalysis.UI.Core.ViewModels;assembly=FrameAnalysis.UI.Core"
+        mc:Ignorable="d"
+        Title="Frame Analysis" Height="720" Width="1180">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" MinWidth="420"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="3*" MinWidth="340"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- LEFT: menu navigation + one active sheet (swapped by a ContentControl) -->
+        <DockPanel Grid.Column="0" Margin="6">
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="_Geometry">
+                    <MenuItem Header="Nodes" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Nodes}"/>
+                    <MenuItem Header="Elements" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Elements}"/>
+                    <MenuItem Header="Materials" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Materials}"/>
+                    <MenuItem Header="Sections" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Sections}"/>
+                    <MenuItem Header="Supports" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Supports}"/>
+                </MenuItem>
+                <MenuItem Header="_Loads">
+                    <MenuItem Header="Joint Loads" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.JointLoads}"/>
+                    <MenuItem Header="Distributed Loads" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.DistributedLoads}"/>
+                    <MenuItem Header="Point Loads" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.PointLoads}"/>
+                    <MenuItem Header="Settlements" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Settlements}"/>
+                    <MenuItem Header="Thermal Loads" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.ThermalLoads}"/>
+                    <Separator/>
+                    <MenuItem Header="Load Cases…" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.LoadCases}"/>
+                    <MenuItem Header="Load Combinations…" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.LoadCombinations}"/>
+                </MenuItem>
+                <MenuItem Header="_Analysis">
+                    <MenuItem Header="Summary" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Results}"/>
+                </MenuItem>
+                <MenuItem Header="_Design">
+                    <MenuItem Header="Project Details" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.DesignSettings}"/>
+                    <MenuItem Header="Materials" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Materials}"/>
+                    <MenuItem Header="Member Design" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.MemberDesign}"/>
+                    <MenuItem Header="Design Results" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.DesignResults}"/>
+                </MenuItem>
+            </Menu>
+
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,4,0,0">
+                <Button Content="Add Row" Command="{Binding AddRowCommand}" Padding="8,2"/>
+                <TextBlock Text="(select a row, then press Delete to remove)" Foreground="Gray"
+                           VerticalAlignment="Center" Margin="10,0"/>
+            </StackPanel>
+
+            <!-- Exactly one sheet exists in the visual tree at a time: the template is chosen
+                 from CurrentSheet. Content is the view-model, so each template binds to it. -->
+            <ContentControl Margin="0,6,0,0" Content="{Binding}">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="ContentTemplate" Value="{StaticResource NodesSheetTemplate}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Elements">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ElementsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Materials">
+                                <Setter Property="ContentTemplate" Value="{StaticResource MaterialsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Sections">
+                                <Setter Property="ContentTemplate" Value="{StaticResource SectionsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Supports">
+                                <Setter Property="ContentTemplate" Value="{StaticResource SupportsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="JointLoads">
+                                <Setter Property="ContentTemplate" Value="{StaticResource JointLoadsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="DistributedLoads">
+                                <Setter Property="ContentTemplate" Value="{StaticResource DistributedLoadsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="PointLoads">
+                                <Setter Property="ContentTemplate" Value="{StaticResource PointLoadsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Settlements">
+                                <Setter Property="ContentTemplate" Value="{StaticResource SettlementsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="ThermalLoads">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ThermalLoadsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="LoadCases">
+                                <Setter Property="ContentTemplate" Value="{StaticResource LoadCasesTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="LoadCombinations">
+                                <Setter Property="ContentTemplate" Value="{StaticResource LoadCombinationsTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="DesignSettings">
+                                <Setter Property="ContentTemplate" Value="{StaticResource DesignSettingsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="MemberDesign">
+                                <Setter Property="ContentTemplate" Value="{StaticResource MemberDesignSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="DesignResults">
+                                <Setter Property="ContentTemplate" Value="{StaticResource DesignResultsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Results">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ResultsSheetTemplate}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+        </DockPanel>
+
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#DDDDDD"/>
+
+        <!-- RIGHT: live viewer -->
+        <DockPanel Grid.Column="2" Margin="6">
+            <ToolBar DockPanel.Dock="Top">
+                <Button Content="Run Analysis" Command="{Binding RunAnalysisCommand}" Padding="8,2"/>
+                <Button Content="Run Design" Command="{Binding RunDesignCommand}" Padding="8,2" Margin="4,0,0,0"
+                        ToolTipService.ShowOnDisabled="True"
+                        ToolTip="Run Analysis first — design demands come from the analysis result. Re-run analysis after edits to unlock."/>
+                <TextBlock Text="Running…" Foreground="SeaGreen" VerticalAlignment="Center" Margin="6,0"
+                           Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+                <Separator/>
+                <Button Content="Zoom Extents" Click="ZoomExtents_Click" Padding="8,2"/>
+                <Separator/>
+                <TextBlock Text="Deflection ×" VerticalAlignment="Center" Margin="4,0"/>
+                <TextBox Width="64" VerticalAlignment="Center" Text="{Binding DeflectionScale}"/>
+            </ToolBar>
+
+            <Border BorderBrush="#CCCCCC" BorderThickness="1">
+                <Canvas x:Name="ModelCanvas" Background="White"/>
+            </Border>
+        </DockPanel>
+    </Grid>
+</Window>

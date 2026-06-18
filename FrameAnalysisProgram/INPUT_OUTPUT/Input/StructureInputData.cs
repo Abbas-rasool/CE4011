@@ -58,23 +58,29 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
 
         /// <summary>
         /// Joint load table.
-        /// Columns: [NodeId, Fx, Fy, Mz]
+        /// Columns: [NodeId, Fx, Fy, Mz, (Nature)]
         /// Units: force, force, force*length
+        /// Nature (optional trailing column) is an <see cref="StructuralLoads.eLoadNature"/> code;
+        /// when omitted the load defaults to <see cref="StructuralLoads.eLoadNature.Dead"/>.
         /// </summary>
         public required double[,] LoadTable { get; set; }
 
         /// <summary>
         /// Uniformly distributed member load table (optional).
-        /// Columns: [ElementId, MagnitudePerLength, Direction]
+        /// Columns: [ElementId, MagnitudePerLength, Direction, (Nature)]
         /// Direction: 0 = global X, 1 = global Y
+        /// Nature (optional trailing column) is an <see cref="StructuralLoads.eLoadNature"/> code;
+        /// when omitted the load defaults to <see cref="StructuralLoads.eLoadNature.Dead"/>.
         /// Frame elements only.
         /// </summary>
         public double[,]? DistributedLoadTable { get; set; }
 
         /// <summary>
         /// Concentrated member load table (optional).
-        /// Columns: [ElementId, DistanceFromStart, Magnitude, Direction]
+        /// Columns: [ElementId, DistanceFromStart, Magnitude, Direction, (Nature)]
         /// Direction: 0 = global X, 1 = global Y
+        /// Nature (optional trailing column) is an <see cref="StructuralLoads.eLoadNature"/> code;
+        /// when omitted the load defaults to <see cref="StructuralLoads.eLoadNature.Dead"/>.
         /// Frame elements only.
         /// </summary>
         public double[,]? PointLoadTable { get; set; }

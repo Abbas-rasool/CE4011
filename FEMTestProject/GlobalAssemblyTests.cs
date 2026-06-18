@@ -27,10 +27,8 @@ namespace FEMTestProject
         private const double I = 0.0001;    // m^4
         private const double L = 4.0;       // m
 
-        private static (Material mat, SectionProperty sec) Properties()
-            => (new Material(1, E), new SectionProperty(1, 0.2, 0.1, I));
+        private static (Material mat, SectionProperty sec) Properties() => (new Material(1, E), new SectionProperty(1, 0.2, 0.1, I));
 
-        // --- INTERFACE TEST 1: contributions at a shared node are summed ---
         [Fact]
         public void Assemble_TwoCollinearFrameElements_SharedNodeStiffnessIsSummed()
         {

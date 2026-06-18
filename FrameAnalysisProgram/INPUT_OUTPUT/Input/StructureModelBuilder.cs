@@ -6,6 +6,7 @@ using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Loads.Members;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Properties;
+using StructuralLoads;
 
 namespace FrameAnalysisProgram.INPUT_OUTPUT
 {
@@ -78,11 +79,11 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             if (input.ElementTable.GetLength(1) != 6)
                 throw new InvalidOperationException("ElementTable must have 6 columns: [StartNodeId, EndNodeId, MaterialId, SectionId, ElementType, MomentRelease].");
 
-            if (input.DistributedLoadTable != null && input.DistributedLoadTable.GetLength(1) != 3)
-                throw new InvalidOperationException("DistributedLoadTable must have 3 columns: [ElementId, MagnitudePerLength, Direction].");
+            if (input.DistributedLoadTable != null && input.DistributedLoadTable.GetLength(1) != 3 && input.DistributedLoadTable.GetLength(1) != 4)
+                throw new InvalidOperationException("DistributedLoadTable must have 3 or 4 columns: [ElementId, MagnitudePerLength, Direction, (Nature)].");
 
-            if (input.PointLoadTable != null && input.PointLoadTable.GetLength(1) != 4)
-                throw new InvalidOperationException("PointLoadTable must have 4 columns: [ElementId, DistanceFromStart, Magnitude, Direction].");
+            if (input.PointLoadTable != null && input.PointLoadTable.GetLength(1) != 4 && input.PointLoadTable.GetLength(1) != 5)
+                throw new InvalidOperationException("PointLoadTable must have 4 or 5 columns: [ElementId, DistanceFromStart, Magnitude, Direction, (Nature)].");
 
             if (input.SettlementTable != null && input.SettlementTable.GetLength(1) != 4)
                 throw new InvalidOperationException("SettlementTable must have 4 columns: [NodeId, dUx, dUy, dRz].");
@@ -99,8 +100,8 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             if (input.SupportTable.GetLength(1) != 4)
                 throw new InvalidOperationException("SupportTable must have 4 columns: [NodeId, Rx, Ry, Rz].");
 
-            if (input.LoadTable.GetLength(1) != 4)
-                throw new InvalidOperationException("LoadTable must have 4 columns: [NodeId, Fx, Fy, Mz].");
+            if (input.LoadTable.GetLength(1) != 4 && input.LoadTable.GetLength(1) != 5)
+                throw new InvalidOperationException("LoadTable must have 4 or 5 columns: [NodeId, Fx, Fy, Mz, (Nature)].");
         }
 
         private Dictionary<int, Node> BuildNodes(StructureInputData input, StructureModel model)
@@ -241,9 +242,10 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                     int elementId = (int)input.DistributedLoadTable[i, 0];
                     double magnitude = input.DistributedLoadTable[i, 1];
                     LoadDirection direction = (LoadDirection)(int)input.DistributedLoadTable[i, 2];
+                    eLoadNature nature = ReadNature(input.DistributedLoadTable, i, 3);
 
                     FrameElement2D frame = ResolveFrameElement(elementMap, elementId, "Distributed");
-                    model.MemberLoads.Add(new UniformDistributedLoad(frame, magnitude, direction));
+                    model.MemberLoads.Add(new UniformDistributedLoad(frame, magnitude, direction, nature));
                 }
             }
 
@@ -256,9 +258,10 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                     double distance = input.PointLoadTable[i, 1];
                     double magnitude = input.PointLoadTable[i, 2];
                     LoadDirection direction = (LoadDirection)(int)input.PointLoadTable[i, 3];
+                    eLoadNature nature = ReadNature(input.PointLoadTable, i, 4);
 
                     FrameElement2D frame = ResolveFrameElement(elementMap, elementId, "Point");
-                    model.MemberLoads.Add(new PointLoad(frame, distance, magnitude, direction));
+                    model.MemberLoads.Add(new PointLoad(frame, distance, magnitude, direction, nature));
                 }
             }
 
@@ -277,6 +280,19 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                     model.MemberLoads.Add(new TemperatureLoad(frame, uniformChange, gradient, expansionCoeff, depth));
                 }
             }
+        }
+
+        /// <summary>
+        /// Reads the optional trailing load-nature column. Tables produced before nature was
+        /// tracked (e.g. fixed test inputs) omit the column; those loads default to
+        /// <see cref="eLoadNature.Dead"/>.
+        /// </summary>
+        private static eLoadNature ReadNature(double[,] table, int row, int natureColumn)
+        {
+            if (table.GetLength(1) <= natureColumn)
+                return eLoadNature.Dead;
+
+            return (eLoadNature)(int)table[row, natureColumn];
         }
 
         private static FrameElement2D ResolveFrameElement(
@@ -366,8 +382,9 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
                 double fx = input.LoadTable[i, 1];
                 double fy = input.LoadTable[i, 2];
                 double mz = input.LoadTable[i, 3];
+                eLoadNature nature = ReadNature(input.LoadTable, i, 4);
 
-                NodalLoad load = new NodalLoad(node, fx, fy, mz);
+                NodalLoad load = new NodalLoad(node, fx, fy, mz, nature);
 
                 model.Loads.Add(load);
             }

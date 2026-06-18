@@ -1,24 +1,26 @@
-﻿using MemberDesigner.DesignInputs.American;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using MemberDesigner.DesignChecks;
+using MemberDesigner.DesignInputs.American;
 using MemberDesigner.DesignInputs.Eurocode;
 using MemberDesigner.DesignInputs.Turkish;
 using static MemberDesigner.Designers.Enums;
 
 namespace MemberDesigner.Designers
 {
+    /// <summary>
+    /// Builds the per-check design inputs for a single member from a
+    /// <see cref="TimberMemberDesignContext"/>. The code is taken from the context (no longer
+    /// hardcoded), and every value comes from the context (no longer static placeholders).
+    /// </summary>
     public class TimberDesignCheckInputFactory
     {
         #region CTOR
 
-        public TimberDesignCheckInputFactory(TimberCheckTypeProvider checkTypeProvider)
+        public TimberDesignCheckInputFactory(TimberCheckTypeProvider checkTypeProvider, TimberMemberDesignContext context)
         {
-            // Later I will have to set it using the data i get from MD!
-            _TimberCode = eTimberCode.EC5;
-
             _checkTypeProvider = checkTypeProvider;
+            _context = context;
+            _TimberCode = context.Code;
         }
 
         #endregion
@@ -26,6 +28,7 @@ namespace MemberDesigner.Designers
         #region Fields
 
         protected TimberCheckTypeProvider _checkTypeProvider;
+        private readonly TimberMemberDesignContext _context;
         private eTimberCode _TimberCode;
 
         #endregion
@@ -46,147 +49,91 @@ namespace MemberDesigner.Designers
                 return PrepareCheckInputEC(checkType);
             }
 
-            return default;
+            return null;
         }
 
         private ITimberDesignCheckInput PrepareCheckInputEC(eTimberDesignCheckType checkType)
         {
             switch (checkType)
             {
-                case eTimberDesignCheckType.Parameters:
-                    var parameters = PrepareParametersCheckInputEC();
-                    return parameters;
-
-                case eTimberDesignCheckType.Tension:
-                    var tensionInputs = PrepareTensionCheckInputEC();
-                    return tensionInputs;
-
-                case eTimberDesignCheckType.Compression:
-                    var compressionInputs = PrepareCompressionCheckInputEC();
-                    return compressionInputs;
-
-                case eTimberDesignCheckType.Bending:
-                    var bendingInputs = PrepareBendingCheckInputEC();
-                    return bendingInputs;
-
-                case eTimberDesignCheckType.Shear:
-                    var shearInputs = PrepareShearCheckInputEC();
-                    return shearInputs;
-
-                case eTimberDesignCheckType.CombinedBendingAxial:
-                    var combinedInputs = PrepareCombinedBendingAxialCheckInputEC();
-                    return combinedInputs;
-
-                default:
-                    break;
+                case eTimberDesignCheckType.Parameters: return PrepareParametersCheckInputEC();
+                case eTimberDesignCheckType.Tension: return PrepareTensionCheckInputEC();
+                case eTimberDesignCheckType.Compression: return PrepareCompressionCheckInputEC();
+                case eTimberDesignCheckType.Bending: return PrepareBendingCheckInputEC();
+                case eTimberDesignCheckType.Shear: return PrepareShearCheckInputEC();
+                case eTimberDesignCheckType.CombinedBendingAxial: return PrepareCombinedBendingAxialCheckInputEC();
+                default: return null;
             }
-
-            return null;
         }
 
-        #region Input Filling Methods Per Check (EC)!!
+        #region Input Filling Methods Per Check (EC)
 
-        // TO DO!
-        // These methods are all filled up with static values for the purpose of testing, the proper UI values should be called later!
-
-        private TimberParametersCheckInputEU PrepareParametersCheckInputEC()
+        private TimberParametersCheckInputEU PrepareParametersCheckInputEC() => new()
         {
-            var checkInput = new TimberParametersCheckInputEU();
+            material = _context.MaterialType,
+            serviceClass = _context.ServiceClass,
+            loadDurationClass = _context.LoadDurationClass,
+            PartialFactor = _context.PartialFactor,
+            ModificationFactor = _context.ModificationFactor,
+            IsFactorsModified = _context.FactorsModified,
+        };
 
-            checkInput.material = eTimberMaterialType.SolidTimber;
-            checkInput.serviceClass = eServiceClass.ServiceClass1;
-            checkInput.loadDurationClass = eLoadDurationClass.PermanentAction;
-
-            checkInput.IsFactorsModified = false;
-
-            return checkInput;
-        }
-
-
-        private TimberTensionCheckInputEU PrepareTensionCheckInputEC()
+        private TimberTensionCheckInputEU PrepareTensionCheckInputEC() => new()
         {
-            var checkInput = new TimberTensionCheckInputEU();
+            Ft = _context.TensionStrength,
+            NetSectionArea = _context.NetArea,
+            MaxTensionDemand = _context.AxialTension,
+            MaxTensionDemand90 = 0f,
+        };
 
-            checkInput.Ft = 14;
-            checkInput.NetSectionArea = 134900;
-            checkInput.MaxTensionDemand = 30000;
-            checkInput.MaxTensionDemand90 = 0f;
-
-            return checkInput;
-        }
-
-        private TimberCompressionCheckInputEU PrepareCompressionCheckInputEC()
+        private TimberCompressionCheckInputEU PrepareCompressionCheckInputEC() => new()
         {
-            var checkInput = new TimberCompressionCheckInputEU();
+            AppliedAngle = _context.AppliedAngle,
+            NetSectionArea = _context.NetArea,
+            EffectiveArea90 = _context.GrossArea,
+            SupportType = _context.SupportType,
+            Fc90 = _context.CompressionPerpStrength,
+            Fc = _context.CompressionStrength,
+            MaxCompressionAppliedAngled = 0f,
+            MaxCompressionDemandParallel = _context.AxialCompression,
+            MaxCompressionDemandPerpendicular = 0f,
+        };
 
-            checkInput.AppliedAngle = 45;
-            checkInput.NetSectionArea = 134900;
-            checkInput.EffectiveArea90 = 30000;
-            checkInput.SupportType = eSupportTypeEU.Continuous;
-            checkInput.Fc90 = 4.9f;
-            checkInput.Fc = 21;
-            checkInput.MaxCompressionAppliedAngled = 0;
-            checkInput.MaxCompressionDemandParallel = 30000;
-            checkInput.MaxCompressionDemandPerpendicular = 3000;
-
-            return checkInput;
-        }
-
-        private TimberBendingCheckInputEU PrepareBendingCheckInputEC()
+        private TimberBendingCheckInputEU PrepareBendingCheckInputEC() => new()
         {
+            material = _context.MaterialType,
+            Fm = _context.BendingStrength,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            MaxDemandMomentMajor = _context.MomentMajor,
+            MaxDemandMomentMinor = _context.MomentMinor,
+        };
 
-            // To Do, These static values should be called from UI!!
-            var checkInput = new TimberBendingCheckInputEU();
-
-            checkInput.material = eTimberMaterialType.SolidTimber;
-
-            checkInput.Fm = 24f;
-            checkInput.h2 = 300f;
-            checkInput.h1 = 450f;
-            checkInput.MaxDemandMomentMajor = 1.2e7f;
-            checkInput.MaxDemandMomentMinor = 2.0e6f;
-
-            return checkInput;
-        }
-
-        private TimberShearCheckInputEU PrepareShearCheckInputEC()
+        private TimberShearCheckInputEU PrepareShearCheckInputEC() => new()
         {
-            var checkInput = new TimberShearCheckInputEU();
+            material = _context.MaterialType,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            Ft90 = _context.TensionPerpStrength,
+            Fv = _context.ShearStrength,
+            RollingShearEffectiveArea = _context.GrossArea,
+            MaxShearDemand = _context.Shear,
+            MaxRollingShearDemand = 0f,
+            MaxTorsionStressDemand = 0f,
+        };
 
-            checkInput.material = eTimberMaterialType.SolidTimber;
-
-            checkInput.h1 = 450;
-            checkInput.h2 = 300;
-
-            checkInput.Ft90 = 0.6f;
-            checkInput.Fv = 3.7f;
-            checkInput.RollingShearEffectiveArea = 134900;
-            checkInput.MaxShearDemand = 30000;
-            checkInput.MaxRollingShearDemand = 3000;
-            checkInput.MaxTorsionStressDemand = 1;
-
-            return checkInput;
-        }
-
-        private TimberCombinedCheckInputEU PrepareCombinedBendingAxialCheckInputEC()
+        private TimberCombinedCheckInputEU PrepareCombinedBendingAxialCheckInputEC() => new()
         {
-            var checkInput = new TimberCombinedCheckInputEU();
-
-            checkInput.material = eTimberMaterialType.SolidTimber;
-
-            checkInput.h1 = 450;
-            checkInput.h2 = 300;
-
-            checkInput.EffectiveBeamLength = 6000;
-            checkInput.E_005 = 8400;
-            checkInput.Fc = 21;
-            checkInput.MajorEffectiveLength = 6000;
-            checkInput.MinorEffectiveLength = 2500;
-
-            checkInput.Fm = 24;
-
-            return checkInput;
-        }
+            material = _context.MaterialType,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            EffectiveBeamLength = _context.EffectiveBeamLength,
+            E_005 = _context.ModulusBuckling,
+            Fc = _context.CompressionStrength,
+            Fm = _context.BendingStrength,
+            MajorEffectiveLength = _context.EffectiveLengthMajor,
+            MinorEffectiveLength = _context.EffectiveLengthMinor,
+        };
 
         #endregion
 
@@ -194,122 +141,209 @@ namespace MemberDesigner.Designers
         {
             switch (checkType)
             {
-                case eTimberDesignCheckType.Parameters:
-                    var parameters = PrepareParametersCheckInputTS();
-                    return parameters;
-
-                case eTimberDesignCheckType.Tension:
-                    var tensionInputs = PrepareTensionCheckInputTS();
-                    return tensionInputs;
-
-                case eTimberDesignCheckType.Compression:
-                    var compressionInputs = PrepareCompressionCheckInputTS();
-                    return compressionInputs;
-
-                case eTimberDesignCheckType.Bending:
-                    var bendingInputs = PrepareBendingCheckInputTS();
-                    return bendingInputs;
-
-                case eTimberDesignCheckType.Shear:
-                    var shearInputs = PrepareShearCheckInputTS();
-                    return shearInputs;
-
-                case eTimberDesignCheckType.CombinedBendingAxial:
-                    var combinedInputs = PrepareCombinedBendingAxialCheckInputTS();
-                    return combinedInputs;
-
-                default:
-                    break;
+                case eTimberDesignCheckType.Parameters: return PrepareParametersCheckInputTS();
+                case eTimberDesignCheckType.Tension: return PrepareTensionCheckInputTS();
+                case eTimberDesignCheckType.Compression: return PrepareCompressionCheckInputTS();
+                case eTimberDesignCheckType.Bending: return PrepareBendingCheckInputTS();
+                case eTimberDesignCheckType.Shear: return PrepareShearCheckInputTS();
+                case eTimberDesignCheckType.CombinedBendingAxial: return PrepareCombinedBendingAxialCheckInputTS();
+                default: return null;
             }
-
-            return null;
         }
 
+        #region Input Filling Methods Per Check (TS)
 
-        #region Input Filling Methods Per Check (TS)!!
-
-        // TO DO!
-        // These methods are all filled up with static values for the purpose of testing, the proper UI values should be called later!
-
-        private TimberParametersCheckInputTS PrepareParametersCheckInputTS()
+        private TimberParametersCheckInputTS PrepareParametersCheckInputTS() => new()
         {
-            var checkInput = new TimberParametersCheckInputTS();
+            material = _context.MaterialType,
+            serviceClass = _context.ServiceClass,
+            loadDurationClass = _context.LoadDurationClass,
+            IsFactorsModified = _context.FactorsModified,
+            CharacteristicDensity = _context.Density,
+            SectionLength = _context.EffectiveBeamLength,
+            h1 = _context.H1,
+            h2 = _context.H2,
+        };
 
-            checkInput.material = eTimberMaterialType.SolidTimber;
-            checkInput.serviceClass = eServiceClass.ServiceClass1;
-            checkInput.loadDurationClass = eLoadDurationClass.PermanentAction;
-
-            checkInput.IsFactorsModified = false;
-
-            return checkInput;
-        }
-
-
-        private TimberTensionCheckInputTS PrepareTensionCheckInputTS()
+        private TimberTensionCheckInputTS PrepareTensionCheckInputTS() => new()
         {
-            var checkInput = new TimberTensionCheckInputTS();
+            NetSectionArea = _context.NetArea,
+            Ft = _context.TensionStrength,
+            MaxDemandTension = _context.AxialTension,
+        };
 
-            return checkInput;
-        }
-
-        private TimberCompressionCheckInputTS PrepareCompressionCheckInputTS()
+        private TimberCompressionCheckInputTS PrepareCompressionCheckInputTS() => new()
         {
-            var checkInput = new TimberCompressionCheckInputTS();
+            material = _context.MaterialType,
+            AppliedAngle = _context.AppliedAngle,
+            NetSectionAreaPerpendicular = _context.GrossArea,
+            SectionLength = _context.EffectiveLengthMajor,
+            CharacteristicDensity = _context.Density,
+            f_c0k = _context.CompressionStrength,
+            f_c90k = _context.CompressionPerpStrength,
+            E_005 = _context.ModulusBuckling,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            BucklingLengthCoe1 = _context.BucklingLengthCoeMajor,
+            BucklingLengthCoe2 = _context.BucklingLengthCoeMinor,
+            Length1 = _context.EffectiveLengthMajor,
+            Length2 = _context.EffectiveLengthMinor,
+            SectionGrossArea = _context.GrossArea,
+            MaxCompressionDemandParallel = _context.AxialCompression,
+            MaxCompressionDemandPerpendicular = 0f,
+            MaxCompressionDemandAngled = 0f,
+        };
 
-
-            return checkInput;
-        }
-
-        private TimberBendingCheckInputTS PrepareBendingCheckInputTS()
+        private TimberShearCheckInputTS PrepareShearCheckInputTS() => new()
         {
+            Material = _context.MaterialType,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            Ft90 = _context.TensionPerpStrength,
+            Fv = _context.ShearStrength,
+            RollingShearEffectiveArea = _context.GrossArea,
+            MaxShearDemand = _context.Shear,
+            MaxRollingShearDemand = 0f,
+            MaxTorsionStressDemand = 0f,
+        };
 
-            // To Do, These static values should be called from UI!!
-            var checkInput = new TimberBendingCheckInputTS();
-
-            checkInput.material = eTimberMaterialType.SolidTimber;
-
-            checkInput.Fm = 24f;
-            checkInput.h2 = 300f;
-            checkInput.h1 = 450f;
-            checkInput.MaxDemandMomentMajor = 1.2e7f;
-            checkInput.MaxDemandMomentMinor = 2.0e6f;
-
-            return checkInput;
-        }
-
-        private TimberShearCheckInputTS PrepareShearCheckInputTS()
+        private TimberBendingCheckInputTS PrepareBendingCheckInputTS() => new()
         {
-            var checkInput = new TimberShearCheckInputTS();
+            material = _context.MaterialType,
+            h1 = _context.H1,
+            h2 = _context.H2,
+            EffectiveBeamLength = _context.EffectiveBeamLength,
+            E_005 = _context.ModulusBuckling,
+            Fm = _context.BendingStrength,
+            MaxDemandMomentMajor = _context.MomentMajor,
+            MaxDemandMomentMinor = _context.MomentMinor,
+        };
 
-
-            checkInput.h1 = 450;
-            checkInput.h2 = 300;
-
-            checkInput.Ft90 = 0.6f;
-            checkInput.Fv = 3.7f;
-            checkInput.RollingShearEffectiveArea = 134900;
-            checkInput.MaxShearDemand = 30000;
-            checkInput.MaxRollingShearDemand = 3000;
-            checkInput.MaxTorsionStressDemand = 1;
-
-            return checkInput;
-        }
-
-        private TimberCombinedCheckInputTS PrepareCombinedBendingAxialCheckInputTS()
+        private TimberCombinedCheckInputTS PrepareCombinedBendingAxialCheckInputTS() => new()
         {
-            var checkInput = new TimberCombinedCheckInputTS();
-
-            checkInput.material = eTimberMaterialType.SolidTimber;
-
-            return checkInput;
-        }
+            material = _context.MaterialType,
+        };
 
         #endregion
 
         private ITimberDesignCheckInput PrepareCheckInputUS(eTimberDesignCheckType checkType)
         {
-            throw new NotImplementedException();
+            switch (checkType)
+            {
+                // US has no standalone Parameters check; adjustment factors are computed inside
+                // each check from the base-class fields. Skip it (filtered out downstream).
+                case eTimberDesignCheckType.Parameters: return null;
+                case eTimberDesignCheckType.Tension: return PrepareTensionCheckInputUS();
+                case eTimberDesignCheckType.Compression: return PrepareCompressionCheckInputUS();
+                case eTimberDesignCheckType.Bending: return PrepareBendingCheckInputUS();
+                case eTimberDesignCheckType.Shear: return PrepareShearCheckInputUS();
+                case eTimberDesignCheckType.CombinedBendingAxial: return PrepareCombinedBendingAxialCheckInputUS();
+                default: return null;
+            }
         }
+
+        #region Input Filling Methods Per Check (US)
+
+        /// <summary>Fills the fields shared by all base-class US check inputs.</summary>
+        private void FillBaseUS(TimberCheckInputBaseClassUS input, eDesignParameter designParameter)
+        {
+            input.h1 = _context.H1;
+            input.h2 = _context.H2;
+            input.Temperature = _context.Temperature;
+            input.TimeEffectFactor = _context.TimeEffectFactor;
+            input.LoadDurationFactor = _context.LoadDurationFactor;
+            input.IsLumberIncised = false;
+            input.TimberType = _context.TimberType;
+            input.designParameter = designParameter;
+            input.memberConfigurationType = _context.MemberConfiguration;
+            input.MoistureContentCondition = _context.MoistureCondition;
+            input.TimberGrade = _context.TimberGrade;
+            input.ApplicationType = _context.ApplicationType;
+        }
+
+        private TimberBendingCheckInputUS PrepareBendingCheckInputUS()
+        {
+            var input = new TimberBendingCheckInputUS
+            {
+                StudSpacing = 0f,
+                Fb = _context.BendingStrength,
+                EffectiveLengthMajor = _context.EffectiveLengthMajor,
+                EffectiveLengthMinor = _context.EffectiveLengthMinor,
+                MaxDemandMomentMajor = _context.MomentMajor,
+                MaxDemandMomentMinor = _context.MomentMinor,
+                E = _context.ModulusMean,
+                Emin = _context.ModulusBuckling,
+                BucklingLengthCoe = _context.BucklingLengthCoeMajor,
+                EndDistance = 0f,
+                SectionModulusMajor = _context.SectionModulusMajor,
+                SectionModulusMinor = _context.SectionModulusMinor,
+                IsLaterallySupported = _context.IsLaterallySupported,
+                IsRepetitiveMember = _context.IsRepetitiveMember,
+            };
+            FillBaseUS(input, eDesignParameter.Fb);
+            return input;
+        }
+
+        private TimberTensionCheckInputUS PrepareTensionCheckInputUS()
+        {
+            var input = new TimberTensionCheckInputUS
+            {
+                Ft = _context.TensionStrength,
+                NetSectionArea = _context.NetArea,
+                MaxTensionDemand = _context.AxialTension,
+            };
+            FillBaseUS(input, eDesignParameter.Ft);
+            return input;
+        }
+
+        private TimberCompressionCheckInputUS PrepareCompressionCheckInputUS()
+        {
+            var input = new TimberCompressionCheckInputUS
+            {
+                BearingLength = 0f,
+                Length1 = _context.EffectiveLengthMajor,
+                Length2 = _context.EffectiveLengthMinor,
+                Length3 = 0f,
+                EndDistance = 0f,
+                BucklingLengthCoe1 = _context.BucklingLengthCoeMajor,
+                BucklingLengthCoe2 = _context.BucklingLengthCoeMinor,
+                E = _context.ModulusMean,
+                Emin = _context.ModulusBuckling,
+                Fc = _context.CompressionStrength,
+                Fc90 = _context.CompressionPerpStrength,
+                NetSectionAreaParallel = _context.NetArea,
+                NetSectionAreaPerpendicular = _context.GrossArea,
+                GrossSectionArea = _context.GrossArea,
+                MaxCompressionDemandParallel = _context.AxialCompression,
+                MaxCompressionDemandPerpendicular = 0f,
+                builtUPColumnType = eBuiltUPColumnConnectionType.None,
+                IsRepetitiveMember = _context.IsRepetitiveMember,
+            };
+            FillBaseUS(input, eDesignParameter.Fc);
+            return input;
+        }
+
+        private TimberShearCheckInputUS PrepareShearCheckInputUS()
+        {
+            var input = new TimberShearCheckInputUS
+            {
+                Inertia = _context.Inertia,
+                MomentofArea = _context.FirstMomentOfArea,
+                Fv = _context.ShearStrength,
+                MaxShearDemand = _context.Shear,
+            };
+            FillBaseUS(input, eDesignParameter.Fv);
+            return input;
+        }
+
+        private TimberCombinedBendingAxialCheckInputUS PrepareCombinedBendingAxialCheckInputUS() => new()
+        {
+            memberConfigurationType = _context.MemberConfiguration,
+            MaxDemandMomentMajor = _context.MomentMajor,
+            MaxDemandMomentMinor = _context.MomentMinor,
+        };
+
+        #endregion
 
         #endregion
 
@@ -317,27 +351,19 @@ namespace MemberDesigner.Designers
         {
             var checkInputs = new List<ITimberDesignCheckInput>();
 
-            try
+            // Required check types for this run; null results (e.g. US Parameters) are skipped
+            // so the list stays clean. Errors propagate to the caller (DesignService) instead
+            // of being silently swallowed.
+            var checkTypes = _checkTypeProvider.GetRequiredCheckTypes();
+
+            for (int i = 0; i < checkTypes.Count; i++)
             {
-                // Get all required CheckTypes from the provider
-                var checkTypes = _checkTypeProvider.GetRequiredCheckTypes();
-
-                for (int i = 0; i < checkTypes.Count; i++)
-                {
-                    var checkType = checkTypes[i];
-
-                    // Prepare the input for this checkType
-                    ITimberDesignCheckInput input = PrepareCheckInput(checkType);
-
+                ITimberDesignCheckInput input = PrepareCheckInput(checkTypes[i]);
+                if (input != null)
                     checkInputs.Add(input);
-                }
-            }
-            catch
-            {
             }
 
             return checkInputs;
         }
-
     }
 }

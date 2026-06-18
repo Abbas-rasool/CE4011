@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
 using FrameAnalysisProgram.STRUCTURAL_MODEL;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
@@ -12,31 +13,18 @@ using Xunit;
 
 namespace FEMTestProject
 {
-    /// <summary>
-    /// End-to-end regression tests covering a frame, a truss, and a combined
-    /// frame-truss structure. Each runs the full analysis pipeline and compares
-    /// results against closed-form values and/or global equilibrium.
-    ///
-    /// Tolerances (clearly stated):
-    /// - RelTol     = 1e-6  : relative tolerance for displacement / force values
-    ///                        (direct solver; a single Euler-Bernoulli element
-    ///                        reproduces the analytical solution exactly).
-    /// - EquilTolN  = 1e-3  : absolute tolerance (N, N*m) on the residual of
-    ///                        global equilibrium (reactions + applied loads = 0).
-    /// </summary>
     public class RegressionTests
     {
         private const double RelTol = 1e-6;
         private const double EquilTolN = 1e-3;
 
-        // --- REGRESSION TEST 1: FRAME (cantilever, closed-form) ---
         [Fact]
         public void Frame_CantileverTipPointLoad_MatchesEulerBernoulliClosedForm()
         {
             const double E = 200e9, I = 0.0001, L = 3.0, P = 10000.0;
 
             var mat = new Material(1, E);
-            var sec = new SectionProperty(1, 0.2, 0.1, I); // A = 0.2 x 0.1 = 0.02
+            var sec = new SectionProperty(1, 0.2, 0.1, I);
             var n1 = new Node(1, 0.0, 0.0);
             var n2 = new Node(2, L, 0.0);
 
@@ -44,12 +32,11 @@ namespace FEMTestProject
             model.Nodes.Add(n1);
             model.Nodes.Add(n2);
             model.Elements.Add(new FrameElement2D(1, n1, n2, mat, sec));
-            model.Supports.Add(new SupportCondition(n1, true, true, true)); // fixed
-            model.Loads.Add(new NodalLoad(n2, 0.0, -P, 0.0));               // downward tip load
+            model.Supports.Add(new SupportCondition(n1, true, true, true));
+            model.Loads.Add(new NodalLoad(n2, 0.0, -P, 0.0));   
 
             FrameAnalysisResult result = Analyze(model);
 
-            // Closed-form cantilever (downward load => negative deflection/rotation).
             double expectedTipDeflection = -P * L * L * L / (3.0 * E * I);
             double expectedTipRotation = -P * L * L / (2.0 * E * I);
 
@@ -235,7 +222,9 @@ namespace FEMTestProject
                 new CSparseCholeskySolver(),
                 displacementMapper,
                 new ElementForceRecovery(displacementMapper),
-                new ReactionRecovery());
+                new ReactionRecovery(),
+                ModelValidator.CreateDefault(),
+                new StiffnessSingularityDetector());
 
             return analyzer.Analyze(model);
         }

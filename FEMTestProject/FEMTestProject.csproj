@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FrameAnalysisProgram\FrameAnalysisProgram.csproj" />
     <ProjectReference Include="..\Matrix_Library\Matrix_Library.csproj" />
+    <ProjectReference Include="..\FrameAnalysis.UI.Core\FrameAnalysis.UI.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

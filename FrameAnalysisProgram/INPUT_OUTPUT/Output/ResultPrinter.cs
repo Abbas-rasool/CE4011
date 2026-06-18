@@ -1,5 +1,6 @@
 ﻿using System;
 using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
 using FrameAnalysisProgram.STRUCTURAL_MODEL;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Elements;
 using FrameAnalysisProgram.STRUCTURAL_MODEL.Geometry;
@@ -62,12 +63,27 @@ namespace FrameAnalysisProgram.INPUT_OUTPUT
             if (result == null)
                 throw new ArgumentNullException(nameof(result));
 
+            PrintValidationMessages(result.ValidationMessages);
             PrintDofMap(result.DofMap);
             PrintGlobalLoadVector(result.GlobalLoadVector);
             PrintGlobalDisplacementVector(result.GlobalDisplacementVector);
             PrintNodalDisplacements(result.NodalDisplacements);
             PrintElementEndForces(result);
             PrintReactions(result);
+        }
+
+        public void PrintValidationMessages(IReadOnlyList<ValidationMessage> messages)
+        {
+            if (messages == null || messages.Count == 0)
+                return;
+
+            Console.WriteLine();
+            Console.WriteLine("========================================");
+            Console.WriteLine("MODEL VALIDATION");
+            Console.WriteLine("========================================");
+
+            foreach (ValidationMessage message in messages)
+                Console.WriteLine($"[{message.Severity}] {message.Message}");
         }
 
         public void PrintGlobalLoadVector(CustomVector loadVector)

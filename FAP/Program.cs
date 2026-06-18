@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.Json;
 using FrameAnalysisProgram.ANALYSIS_CORE;
+using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
 using FrameAnalysisProgram.INPUT_OUTPUT;
 using FrameAnalysisProgram.STRUCTURAL_MODEL;
 using Matrix_Library.SOLVERS;
@@ -22,6 +23,7 @@ namespace FAP
                 Console.WriteLine("3. Build Portal Frame Input (with member load)");
                 Console.WriteLine("4. Two-Bar Truss Example");
                 Console.WriteLine("5. Settlement + Thermal Demo");
+                Console.WriteLine("6. Q3 Stability Cases (a-e: warnings/errors)");
 
                 Console.Write("\nSelect option: ");
 
@@ -49,6 +51,10 @@ namespace FAP
                         input = BuildSettlementThermalInput();
                         break;
 
+                    case "6":
+                        RunQ3StabilityCases();
+                        break; // handles its own output; input stays null
+
                     default:
                         Console.WriteLine("Invalid selection. Defaulting to Homework Sample.");
                         input = BuildHomeworkSampleInput();
@@ -56,7 +62,8 @@ namespace FAP
                 }
 
                 // --- Analysis Execution ---
-                RunAnalysis(input);
+                if (input != null)
+                    RunAnalysis(input);
             }
             catch (Exception ex)
             {
@@ -72,24 +79,161 @@ namespace FAP
             StructureModelBuilder modelBuilder = new StructureModelBuilder();
             StructureModel model = modelBuilder.Build(input);
 
-            DisplacementMapper displacementMapper = new DisplacementMapper();
-            ElementForceRecovery elementForceRecovery = new ElementForceRecovery(displacementMapper);
+            ResultPrinter printer = new ResultPrinter();
+            printer.PrintModel(model);
 
-            FrameAnalyzer analyzer = new FrameAnalyzer(
+            FrameAnalyzer analyzer = BuildAnalyzer();
+
+            try
+            {
+                FrameAnalysisResult result = analyzer.Analyze(model);
+                printer.PrintAnalysisResult(result);
+            }
+            catch (StructuralAnalysisException ex)
+            {
+                Console.WriteLine();
+                Console.WriteLine("========================================");
+                Console.WriteLine("ANALYSIS STOPPED - MODEL PROBLEM");
+                Console.WriteLine("========================================");
+                foreach (ValidationMessage message in ex.Messages)
+                    Console.WriteLine($"[{message.Severity}] {message.Message}");
+            }
+        }
+
+        private static FrameAnalyzer BuildAnalyzer()
+        {
+            DisplacementMapper displacementMapper = new DisplacementMapper();
+
+            return new FrameAnalyzer(
                 new DofNumberingService(),
                 new GlobalStiffnessAssembler(),
                 new LoadVectorBuilder(),
                 new SettlementLoadBuilder(),
                 new CSparseCholeskySolver(),
                 displacementMapper,
-                elementForceRecovery,
-                new ReactionRecovery());
+                new ElementForceRecovery(displacementMapper),
+                new ReactionRecovery(),
+                ModelValidator.CreateDefault(),
+                new StiffnessSingularityDetector());
+        }
 
-            FrameAnalysisResult result = analyzer.Analyze(model);
+        // Q3: run each given structure and report whether it analyzes or why it doesn't.
+        private static void RunQ3StabilityCases()
+        {
+            (string name, StructureInputData input)[] cases =
+            {
+                ("(a) Portal frame on two rollers (sway mechanism)", BuildCaseA_PortalOnRollers()),
+                ("(b) Two fixed columns, no connecting beam (disconnected)", BuildCaseB_DisconnectedColumns()),
+                ("(c) Fixed-base portal frame (stable, indeterminate)", BuildCaseC_IndeterminatePortal()),
+                ("(d) Two-bar truss on pin + roller (mechanism)", BuildCaseD_TrussMechanism()),
+                ("(e) Beam with internal hinge, free segment (partial mechanism)", BuildCaseE_HingeMechanism())
+            };
 
-            ResultPrinter printer = new ResultPrinter();
-            printer.PrintModel(model);
-            printer.PrintAnalysisResult(result);
+            FrameAnalyzer analyzer = BuildAnalyzer();
+
+            foreach ((string name, StructureInputData input) in cases)
+            {
+                Console.WriteLine();
+                Console.WriteLine("################################################################");
+                Console.WriteLine("CASE " + name);
+                Console.WriteLine("################################################################");
+
+                try
+                {
+                    StructureModel model = new StructureModelBuilder().Build(input);
+                    FrameAnalysisResult result = analyzer.Analyze(model);
+
+                    Console.WriteLine(">> ANALYZED SUCCESSFULLY.");
+                    foreach (ValidationMessage message in result.ValidationMessages)
+                        Console.WriteLine($"   [{message.Severity}] {message.Message}");
+                }
+                catch (StructuralAnalysisException ex)
+                {
+                    Console.WriteLine(">> NOT ANALYZED - problem detected:");
+                    foreach (ValidationMessage message in ex.Messages)
+                        Console.WriteLine($"   [{message.Severity}] {message.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(">> NOT ANALYZED - " + ex.Message);
+                }
+            }
+        }
+
+        // (a) Portal frame whose two bases are vertical rollers: nothing resists
+        // horizontal translation -> sway mechanism.
+        private static StructureInputData BuildCaseA_PortalOnRollers()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 0, 4 }, { 6, 4 }, { 6, 0 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.3, 0.3, 0.000675 } },
+                ElementTable = new int[,] { { 1, 2, 1, 1, 0, 0 }, { 2, 3, 1, 1, 0, 0 }, { 4, 3, 1, 1, 0, 0 } },
+                SupportTable = new int[,] { { 1, 0, 1, 0 }, { 4, 0, 1, 0 } }, // rollers (Uy only)
+                LoadTable = new double[,] { { 2, 10000, 0, 0 } }
+            };
+        }
+
+        // (b) Two fixed-base cantilever columns that share no element -> the model
+        // is two separate structures.
+        private static StructureInputData BuildCaseB_DisconnectedColumns()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 0, 4 }, { 6, 0 }, { 6, 4 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.3, 0.3, 0.000675 } },
+                ElementTable = new int[,] { { 1, 2, 1, 1, 0, 0 }, { 3, 4, 1, 1, 0, 0 } }, // no beam joining them
+                SupportTable = new int[,] { { 1, 1, 1, 1 }, { 3, 1, 1, 1 } },
+                LoadTable = new double[,] { { 2, 5000, 0, 0 }, { 4, 5000, 0, 0 } }
+            };
+        }
+
+        // (c) Fixed-base portal frame: stable and statically indeterminate. Must
+        // analyze (not be rejected) and report redundancy.
+        private static StructureInputData BuildCaseC_IndeterminatePortal()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 0, 4 }, { 6, 4 }, { 6, 0 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.3, 0.3, 0.000675 } },
+                ElementTable = new int[,] { { 1, 2, 1, 1, 0, 0 }, { 2, 3, 1, 1, 0, 0 }, { 4, 3, 1, 1, 0, 0 } },
+                SupportTable = new int[,] { { 1, 1, 1, 1 }, { 4, 1, 1, 1 } }, // both bases fixed
+                LoadTable = new double[,] { { 2, 10000, 0, 0 } }
+            };
+        }
+
+        // (d) Two-bar truss held by a pin and a roller: m + r < 2j -> the apex can
+        // swing (mechanism).
+        private static StructureInputData BuildCaseD_TrussMechanism()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 4, 0 }, { 2, 3 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.1, 0.1, 0.0001 } },
+                ElementTable = new int[,] { { 1, 3, 1, 1, 1, 0 }, { 2, 3, 1, 1, 1, 0 } }, // truss members
+                SupportTable = new int[,] { { 1, 1, 1, 0 }, { 2, 0, 1, 0 } }, // pin + roller
+                LoadTable = new double[,] { { 3, 0, -20000, 0 } }
+            };
+        }
+
+        // (e) Cantilever with a hinged extension: the segment beyond the internal
+        // hinge has no support of its own -> free to rotate (partial mechanism).
+        private static StructureInputData BuildCaseE_HingeMechanism()
+        {
+            return new StructureInputData
+            {
+                NodeTable = new double[,] { { 0, 0 }, { 3, 0 }, { 6, 0 } },
+                MaterialTable = new double[,] { { 200e9 } },
+                SectionTable = new double[,] { { 0.3, 0.3, 0.000675 } },
+                // Element 2 has a moment release at its start (node 2): an internal hinge.
+                ElementTable = new int[,] { { 1, 2, 1, 1, 0, 0 }, { 2, 3, 1, 1, 0, 1 } },
+                SupportTable = new int[,] { { 1, 1, 1, 1 } }, // only the cantilever base is supported
+                LoadTable = new double[,] { { 3, 0, -5000, 0 } }
+            };
         }
 
         #region Input Methods

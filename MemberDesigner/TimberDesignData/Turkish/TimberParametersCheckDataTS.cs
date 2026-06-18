@@ -47,7 +47,8 @@ namespace MemberDesigner.TimberDesignData.Turkish
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        // Parameters is not a capacity check; it carries factors only.
+        public override double GetUtilizationRatio() => 0;
 
         #endregion
     }

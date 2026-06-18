@@ -67,7 +67,13 @@ namespace MemberDesigner.TimberDesignData.Eurocode
 
         public override string GetDetailedReportSection() => throw new NotImplementedException();
 
-        public override double GetUtilizationRatio() => throw new NotImplementedException();
+        public override double GetUtilizationRatio()
+        {
+            double shear = ShearStrengthMaterial > 0 ? MaxShearStress / ShearStrengthMaterial : 0;
+            double rolling = ShearStrengthRollingMaterial > 0 ? MaxRollingShearStress / ShearStrengthRollingMaterial : 0;
+            double torsion = TorsionShearCapacity > 0 ? MaxTorsionStressDemand / TorsionShearCapacity : 0;
+            return Math.Max(shear, Math.Max(rolling, torsion));
+        }
 
         #endregion
     }
