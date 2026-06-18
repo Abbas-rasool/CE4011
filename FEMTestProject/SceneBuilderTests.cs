@@ -59,7 +59,8 @@ namespace FEMTestProject
             Scene scene = SceneBuilder.Build(doc, outcome.Result, deflectionScale: 100.0);
 
             Assert.Equal(3, scene.DeflectedMembers.Count);
-            Assert.All(scene.DeflectedMembers, m => Assert.Equal(2, m.Points.Count));
+            // Curved now: each member is sampled at many stations, not just its two ends.
+            Assert.All(scene.DeflectedMembers, m => Assert.True(m.Points.Count > 2));
             Assert.Equal(2, scene.Reactions.Count); // two fixed bases
         }
     }

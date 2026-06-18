@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using StructuralLoads;
 using static MemberDesigner.Designers.Enums;
 
 namespace FrameAnalysis.UI.Core.Documents;
@@ -13,6 +14,9 @@ public partial class DesignSettings : ObservableObject
 {
     /// <summary>Active design code for the whole project (US / EC5 / TR).</summary>
     [ObservableProperty] private eTimberCode code = eTimberCode.EC5;
+
+    /// <summary>US (ASCE 7) combination format — LRFD or ASD. Ignored by EC5 / TR.</summary>
+    [ObservableProperty] private eLoadCombinationType usDesignMethod = eLoadCombinationType.ASD;
 
     /// <summary>Service class (humidity exposure) — EC5 / TR.</summary>
     [ObservableProperty] private eServiceClass serviceClass = eServiceClass.ServiceClass1;

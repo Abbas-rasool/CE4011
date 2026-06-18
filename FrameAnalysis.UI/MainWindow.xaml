@@ -38,6 +38,7 @@
                 <MenuItem Header="_Analysis">
                     <MenuItem Header="Summary" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Results}"/>
                 </MenuItem>
+                <MenuItem Header="_Units" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Units}"/>
                 <MenuItem Header="_Design">
                     <MenuItem Header="Project Details" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.DesignSettings}"/>
                     <MenuItem Header="Materials" Command="{Binding ShowSheetCommand}" CommandParameter="{x:Static vm:Sheet.Materials}"/>
@@ -103,6 +104,9 @@
                             </DataTrigger>
                             <DataTrigger Binding="{Binding CurrentSheet}" Value="Results">
                                 <Setter Property="ContentTemplate" Value="{StaticResource ResultsSheetTemplate}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CurrentSheet}" Value="Units">
+                                <Setter Property="ContentTemplate" Value="{StaticResource UnitsSheetTemplate}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

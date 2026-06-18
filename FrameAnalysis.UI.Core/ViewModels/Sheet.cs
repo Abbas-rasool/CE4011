@@ -30,5 +30,8 @@ public enum Sheet
     DesignResults,
 
     // Results
-    Results
+    Results,
+
+    // Settings
+    Units
 }

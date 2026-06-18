@@ -5,6 +5,7 @@ using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
 using FrameAnalysisProgram.INPUT_OUTPUT;
 using FrameAnalysisProgram.STRUCTURAL_MODEL;
 using Matrix_Library.SOLVERS;
+using StructuralLoads;
 
 namespace FrameAnalysis.UI.Core.Services;
 
@@ -52,6 +53,47 @@ public sealed class AnalysisService : IAnalysisService
         return Task.Run(() => Run(input), cancellationToken);
     }
 
+    public Task<SuperpositionBasis> RunPerNatureAsync(
+        ProjectDocument document, IReadOnlySet<eLoadNature> natures, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(natures);
+
+        // Map each isolated load case on the caller thread (the document is not thread-safe).
+        var natureInputs = new Dictionary<eLoadNature, StructureInputData>();
+        foreach (eLoadNature n in natures)
+            natureInputs[n] = ModelInputMapper.ToInputData(document, LoadScope.Nature(n));
+
+        StructureInputData? settlementInput = document.Settlements.Count > 0
+            ? ModelInputMapper.ToInputData(document, LoadScope.SettlementsOnly)
+            : null;
+
+        return Task.Run(() =>
+        {
+            var perNature = new Dictionary<eLoadNature, IReadOnlyDictionary<int, double[]>>();
+            foreach (var (nature, input) in natureInputs)
+                perNature[nature] = SolveEndForces(input);
+
+            IReadOnlyDictionary<int, double[]>? settlement =
+                settlementInput is not null ? SolveEndForces(settlementInput) : null;
+
+            return new SuperpositionBasis(perNature, settlement);
+        }, cancellationToken);
+    }
+
+    /// <summary>Solves one input and returns each element's local end-force vector by element id.</summary>
+    private IReadOnlyDictionary<int, double[]> SolveEndForces(StructureInputData input)
+    {
+        StructureModel model = _modelBuilder.Build(input);
+        FrameAnalyzer analyzer = _analyzerFactory();
+        FrameAnalysisResult result = analyzer.Analyze(model);
+
+        var map = new Dictionary<int, double[]>();
+        foreach (var ef in result.ElementEndForces)
+            map[ef.Element.Id] = (double[])ef.LocalEndForces.Clone();
+        return map;
+    }
+
     private AnalysisOutcome Run(StructureInputData input)
     {
         try
@@ -89,6 +131,7 @@ public sealed class AnalysisService : IAnalysisService
             new ElementForceRecovery(displacementMapper),
             new ReactionRecovery(),
             ModelValidator.CreateDefault(),
-            new StiffnessSingularityDetector());
+            new StiffnessSingularityDetector(),
+            new SectionForceRecovery());
     }
 }

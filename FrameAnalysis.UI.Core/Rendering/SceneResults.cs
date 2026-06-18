@@ -2,8 +2,9 @@ namespace FrameAnalysis.UI.Core.Rendering;
 
 /// <summary>
 /// The deflected shape of a member as a polyline in world coordinates (already amplified
-/// by the deflection scale). Currently two points (linear); Phase 5 will sample the true
-/// cubic shape, adding intermediate points without changing this contract.
+/// by the deflection scale). Sampled from the member's station points using the Hermite
+/// cubic shape, so the polyline carries the true bending curvature, not just the displaced
+/// end nodes.
 /// </summary>
 public sealed record SceneDeflectedMember(int Id, IReadOnlyList<ScenePoint> Points);
 

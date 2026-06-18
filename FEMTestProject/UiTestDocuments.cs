@@ -27,7 +27,8 @@ namespace FEMTestProject
             var mat = new MaterialRowVm { ElasticModulus = 200000.0 };
             doc.Materials.Add(mat);
 
-            var sec = new SectionRowVm { Width = 0.1, Depth = 0.1, MomentOfInertia = 0.0001 };
+            // Sections in mm, inertia in mm⁴ (= 0.1 m × 0.1 m, I = 1e-4 m⁴ in canonical units).
+            var sec = new SectionRowVm { Width = 100, Depth = 100, MomentOfInertia = 1.0e8 };
             doc.Sections.Add(sec);
 
             doc.Elements.Add(new ElementRowVm { StartNode = n1, EndNode = n2, Material = mat, Section = sec });
@@ -65,7 +66,8 @@ namespace FEMTestProject
             var mat = new MaterialRowVm { ElasticModulus = 200000.0 };
             doc.Materials.Add(mat);
 
-            var sec = new SectionRowVm { Width = 0.1, Depth = 0.1, MomentOfInertia = 0.0001 };
+            // Sections in mm, inertia in mm⁴ (= 0.1 m × 0.1 m, I = 1e-4 m⁴ in canonical units).
+            var sec = new SectionRowVm { Width = 100, Depth = 100, MomentOfInertia = 1.0e8 };
             doc.Sections.Add(sec);
 
             doc.Elements.Add(new ElementRowVm { StartNode = n1, EndNode = n2, Material = mat, Section = sec });

@@ -103,6 +103,7 @@ namespace MemberDesigner.DesignChecks.Helpers
             checkData.TimeEffectFactor = 1;
 
             checkData.FormatConversionFactorEmin = 1;
+            checkData.ResistanceFactorEmin = 1; // ASD: no resistance factor (LRFD overrides below)
 
             if (castedInput.loadCombinationType == eLoadCombinationType.LRFD)
             {

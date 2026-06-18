@@ -70,7 +70,7 @@ namespace MemberDesigner.TimberDesignData.American
         /// </summary>
         public override string GetSummary()
         {
-            throw new NotImplementedException();
+            return $"Combined bending + axial interaction; D/C = {GetUtilizationRatio():P0}";
         }
 
         /// <summary>
@@ -83,8 +83,23 @@ namespace MemberDesigner.TimberDesignData.American
 
         public override double GetUtilizationRatio()
         {
-            // Typically returns the maximum limit value calculated from the interaction equations
-            throw new NotImplementedException();
+            // The governing NDS interaction value: the compression+bending equations (3.9.2) for a
+            // member with axial compression, otherwise the tension+bending equations (3.9.1). Only
+            // finite, positive limits are considered (degenerate cases collapse to ~0).
+            double ratio = CompressionDemandStress > 0f
+                ? Largest(CombinedCompressionLimit1, CombinedCompressionLimit2)
+                : Largest(CombinedTensionLimitMajor1, CombinedTensionLimitMinor1,
+                          CombinedTensionLimitMajor2, CombinedTensionLimitMinor2);
+
+            return ratio;
+        }
+
+        private static double Largest(params float[] limits)
+        {
+            double max = 0;
+            foreach (float v in limits)
+                if (double.IsFinite(v) && v > max) max = v;
+            return max;
         }
 
         #endregion

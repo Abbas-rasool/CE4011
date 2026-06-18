@@ -8,7 +8,8 @@ namespace FrameAnalysis.UI.Core.Documents.Rows;
 /// object (kept in sync with the element collection). Material strength comes from the
 /// element's material; section geometry from the element's section; demands are auto-fed from
 /// the analysis result — so this row only carries the things the analysis can't supply
-/// (effective lengths, bracing, support type). Lengths in mm.
+/// (effective lengths, bracing, support type). Effective lengths are entered in m (the UI's
+/// length unit) and converted to mm for the design backend by DesignInputMapper.
 /// </summary>
 public partial class MemberDesignRowVm : ObservableObject
 {

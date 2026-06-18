@@ -1,3 +1,4 @@
+using StructuralLoads;
 using static MemberDesigner.Designers.Enums;
 
 namespace MemberDesigner.Designers
@@ -54,6 +55,10 @@ namespace MemberDesigner.Designers
         public bool FactorsModified { get; set; }
         public float PartialFactor { get; set; }
         public float ModificationFactor { get; set; }
+
+        /// <summary>US (ASCE 7) combination format — LRFD or ASD. Selects the NDS design path
+        /// (LRFD uses the time-effect factor λ; ASD uses the load-duration factor C_D).</summary>
+        public eLoadCombinationType DesignMethod { get; set; } = eLoadCombinationType.ASD;
 
         // --- Member parameters ---
         public float EffectiveLengthMajor { get; set; }

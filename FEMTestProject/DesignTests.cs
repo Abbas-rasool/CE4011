@@ -17,8 +17,9 @@ namespace FEMTestProject
 {
     /// <summary>
     /// Covers the design wiring: the material database, the demand mapping from analysis
-    /// results, and the end-to-end design service for each code. Geometry is in mm, forces in
-    /// N, strengths in MPa — the units the design backend expects.
+    /// results, and the end-to-end design service for each code. The document is built in the
+    /// UI's units (coordinates/spans in m, section dims in mm, forces in kN, strengths in MPa);
+    /// the mappers convert to the design backend's { N, mm, MPa }, which the assertions check.
     /// </summary>
     public class DesignTests
     {
@@ -67,7 +68,7 @@ namespace FEMTestProject
             FrameAnalysisResult result = Analyze(doc);
 
             TimberMemberDesignContext ctx =
-                DesignInputMapper.BuildContext(doc.MemberDesigns[0], 1, doc.Design, result);
+                DesignInputMapper.BuildContext(doc.MemberDesigns[0], 1, doc.Design, result, doc.Units);
 
             // Cantilever L=1000 mm, tip load 1000 N: M_fixed = P*L, V = P.
             Assert.Equal(1_000_000.0, ctx.MomentMajor, 0);
@@ -89,10 +90,27 @@ namespace FEMTestProject
             FrameAnalysisResult result = Analyze(doc);
 
             TimberMemberDesignContext ctx =
-                DesignInputMapper.BuildContext(doc.MemberDesigns[0], 1, doc.Design, result);
+                DesignInputMapper.BuildContext(doc.MemberDesigns[0], 1, doc.Design, result, doc.Units);
 
             Assert.True(ctx.AxialTension > 1000f, $"Expected tension demand, got T={ctx.AxialTension}, C={ctx.AxialCompression}");
             Assert.Equal(0f, ctx.AxialCompression);
+        }
+
+        [Fact]
+        public void Mapper_UdlBeam_UsesMidspanMomentEnvelope_NotEndForces()
+        {
+            const double L = 4.0, w = 5.0; // span (m), UDL intensity (kN/m, downward)
+            ProjectDocument doc = BuildSimplySupportedUdlBeam(L, w);
+            FrameAnalysisResult result = AnalyzeWithStations(doc);
+
+            TimberMemberDesignContext ctx =
+                DesignInputMapper.BuildContext(doc.MemberDesigns[0], 1, doc.Design, result, doc.Units);
+
+            // The simply-supported end moments are ~0; the station envelope captures the
+            // mid-span peak wL^2/8 (= 10 kN·m → 1e7 N·mm).
+            double expectedNmm = w * L * L / 8.0 * 1e6;
+            Assert.True(System.Math.Abs(ctx.MomentMajor - expectedNmm) <= 1e-2 * expectedNmm,
+                $"Expected mid-span envelope ~{expectedNmm:G6} N·mm, got {ctx.MomentMajor:G6}.");
         }
 
         // --- End-to-end design service per code ---
@@ -175,7 +193,7 @@ namespace FEMTestProject
             doc.Design.Code = code;
 
             var n1 = new NodeRowVm { X = 0, Y = 0 };
-            var n2 = new NodeRowVm { X = 1000, Y = 0 };
+            var n2 = new NodeRowVm { X = 1.0, Y = 0 }; // 1 m cantilever (coords in m)
             doc.Nodes.Add(n1);
             doc.Nodes.Add(n2);
 
@@ -190,7 +208,7 @@ namespace FEMTestProject
 
             doc.Elements.Add(new ElementRowVm { StartNode = n1, EndNode = n2, Material = mat, Section = sec });
             doc.Supports.Add(new SupportRowVm { Node = n1, RestrainX = true, RestrainY = true, RestrainRz = true });
-            doc.NodalLoads.Add(new NodalLoadRowVm { Node = n2, Fy = -transverseLoadN });
+            doc.NodalLoads.Add(new NodalLoadRowVm { Node = n2, Fy = -transverseLoadN / 1000.0 }); // N → kN
 
             ConfigureMember(doc);
             return doc;
@@ -203,7 +221,7 @@ namespace FEMTestProject
             doc.Design.Code = eTimberCode.EC5;
 
             var n1 = new NodeRowVm { X = 0, Y = 0 };
-            var n2 = new NodeRowVm { X = 1000, Y = 0 };
+            var n2 = new NodeRowVm { X = 1.0, Y = 0 }; // 1 m cantilever (coords in m)
             doc.Nodes.Add(n1);
             doc.Nodes.Add(n2);
 
@@ -215,18 +233,67 @@ namespace FEMTestProject
 
             doc.Elements.Add(new ElementRowVm { StartNode = n1, EndNode = n2, Material = mat, Section = sec });
             doc.Supports.Add(new SupportRowVm { Node = n1, RestrainX = true, RestrainY = true, RestrainRz = true });
-            doc.NodalLoads.Add(new NodalLoadRowVm { Node = n2, Fx = axialLoadN });
+            doc.NodalLoads.Add(new NodalLoadRowVm { Node = n2, Fx = axialLoadN / 1000.0 }); // N → kN
 
             ConfigureMember(doc);
             return doc;
         }
 
+        /// <summary>Simply-supported beam (pin + roller) carrying a downward UDL.</summary>
+        private static ProjectDocument BuildSimplySupportedUdlBeam(double lengthM, double udlKnPerM)
+        {
+            var doc = new ProjectDocument();
+            doc.Design.Code = eTimberCode.EC5;
+
+            var n1 = new NodeRowVm { X = 0, Y = 0 };
+            var n2 = new NodeRowVm { X = lengthM, Y = 0 };
+            doc.Nodes.Add(n1);
+            doc.Nodes.Add(n2);
+
+            var mat = new MaterialRowVm { StrengthClass = eStrengthClass.C24 };
+            doc.Materials.Add(mat);
+
+            var sec = new SectionRowVm { Width = 100, Depth = 200, MomentOfInertia = 100 * 200 * 200 * 200 / 12.0 };
+            doc.Sections.Add(sec);
+
+            var element = new ElementRowVm { StartNode = n1, EndNode = n2, Material = mat, Section = sec };
+            doc.Elements.Add(element);
+            doc.Supports.Add(new SupportRowVm { Node = n1, RestrainX = true, RestrainY = true, RestrainRz = false });  // pin
+            doc.Supports.Add(new SupportRowVm { Node = n2, RestrainX = false, RestrainY = true, RestrainRz = false }); // roller
+            doc.DistributedLoads.Add(new DistributedLoadRowVm { Element = element, MagnitudePerLength = -udlKnPerM });
+
+            ConfigureMember(doc);
+            return doc;
+        }
+
+        private static FrameAnalysisResult AnalyzeWithStations(ProjectDocument doc)
+        {
+            StructureInputData input = ModelInputMapper.ToInputData(doc);
+            StructureModel model = new StructureModelBuilder().Build(input);
+
+            var displacementMapper = new DisplacementMapper();
+            var analyzer = new FrameAnalyzer(
+                new DofNumberingService(),
+                new GlobalStiffnessAssembler(),
+                new LoadVectorBuilder(),
+                new SettlementLoadBuilder(),
+                new CSparseCholeskySolver(),
+                displacementMapper,
+                new ElementForceRecovery(displacementMapper),
+                new ReactionRecovery(),
+                ModelValidator.CreateDefault(),
+                new StiffnessSingularityDetector(),
+                new SectionForceRecovery());
+
+            return analyzer.Analyze(model);
+        }
+
         private static void ConfigureMember(ProjectDocument doc)
         {
             MemberDesignRowVm md = doc.MemberDesigns[0];
-            md.EffectiveLengthMajor = 1000;
-            md.EffectiveLengthMinor = 1000;
-            md.EffectiveBeamLength = 1000;
+            md.EffectiveLengthMajor = 1.0; // m (= 1000 mm in the design backend)
+            md.EffectiveLengthMinor = 1.0;
+            md.EffectiveBeamLength = 1.0;
         }
 
         private static FrameAnalysisResult Analyze(ProjectDocument doc)

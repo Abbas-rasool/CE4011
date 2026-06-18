@@ -344,14 +344,9 @@ namespace MemberDesigner.DesignChecks.American
         /// </summary>
         private double CalculateCriticalBucklingDesignStress(double slendernessRatio, double adjustedElasticModulus)
         {
-            double adjustE = adjustedElasticModulus / 0.00689476;
-
-            double criticalBucklingStress = (0.822 * adjustedElasticModulus) / Math.Pow(slendernessRatio, 2);
-
-            // to convert psi to MPa
-            criticalBucklingStress *= 0.00689476;
-
-            return criticalBucklingStress;
+            // F_cE = 0.822 · E_min' / (le/d)²  (NDS 3.7.1.5). The coefficient is dimensionless and
+            // E_min' and F_cE share units (MPa), so no psi conversion is applied.
+            return (0.822 * adjustedElasticModulus) / Math.Pow(slendernessRatio, 2);
         }
         #endregion
     }

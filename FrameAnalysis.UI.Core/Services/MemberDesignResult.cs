@@ -4,13 +4,16 @@ using static MemberDesigner.Designers.Enums;
 
 namespace FrameAnalysis.UI.Core.Services;
 
-/// <summary>One design check's outcome for a member (utilization ratio + pass/fail + text).</summary>
+/// <summary>One design check's outcome for a member (utilization ratio + pass/fail + text).
+/// <see cref="GoverningCombination"/> names the load combination that produced this (worst)
+/// value when the result comes from a combination envelope; empty for a single-state run.</summary>
 public sealed record CheckResult(
     eTimberDesignCheckType CheckType,
     string Title,
     double Utilization,
     eDesignStatus Status,
-    string Summary);
+    string Summary,
+    string GoverningCombination = "");
 
 /// <summary>
 /// All design-check results for a single member (1-based <see cref="ElementId"/>), plus the
@@ -30,4 +33,8 @@ public sealed record MemberDesignResult(int ElementId, IReadOnlyList<CheckResult
     /// <summary>Check type with the highest utilization (the governing check), if any.</summary>
     public eTimberDesignCheckType? GoverningCheck =>
         Checks.Count == 0 ? null : Checks.OrderByDescending(c => c.Utilization).First().CheckType;
+
+    /// <summary>Load combination behind the governing check (empty for a single-state run).</summary>
+    public string GoverningCombination =>
+        Checks.Count == 0 ? "" : Checks.OrderByDescending(c => c.Utilization).First().GoverningCombination;
 }

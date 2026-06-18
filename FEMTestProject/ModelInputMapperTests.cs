@@ -31,11 +31,12 @@ namespace FEMTestProject
             Assert.Equal(0.0, input.NodeTable[1, 0]);
             Assert.Equal(3.0, input.NodeTable[1, 1]);
 
-            // Material / section columns.
-            Assert.Equal(200000.0, input.MaterialTable[0, 0]);
-            Assert.Equal(0.1, input.SectionTable[0, 0]);   // Width
-            Assert.Equal(0.1, input.SectionTable[0, 1]);   // Depth (table "Length")
-            Assert.Equal(0.0001, input.SectionTable[0, 2]); // I
+            // Material / section columns, converted to canonical units: E from MPa to kN/m²
+            // (×1000); Width/Depth from mm to m (×1e-3); I from mm⁴ to m⁴ (×1e-12).
+            Assert.Equal(2.0e8, input.MaterialTable[0, 0]);
+            Assert.Equal(0.1, input.SectionTable[0, 0], 9);    // Width  (100 mm)
+            Assert.Equal(0.1, input.SectionTable[0, 1], 9);    // Depth  (100 mm, table "Length")
+            Assert.Equal(0.0001, input.SectionTable[0, 2], 12); // I     (1e8 mm⁴)
 
             // Element table: [Start, End, Mat, Sec, Type, Release]. Element 3 is n4 -> n3.
             Assert.Equal(4, input.ElementTable[2, 0]);

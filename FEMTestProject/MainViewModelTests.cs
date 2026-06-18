@@ -78,6 +78,35 @@ namespace FEMTestProject
         }
 
         [Fact]
+        public async Task OpenMemberResult_AfterRun_RaisesRequestWithSelectedMemberStations()
+        {
+            var vm = new MainViewModel(AnalysisService.CreateDefault(), UiTestDocuments.BuildPortalFrameDocument());
+            await vm.RunAnalysisCommand.ExecuteAsync(null);
+
+            FrameAnalysisProgram.ANALYSIS_CORE.MemberStationResult? requested = null;
+            vm.MemberResultRequested += (stations, _) => requested = stations;
+
+            vm.SelectedElementId = 2;             // the beam (set by the list/canvas selection)
+            vm.OpenMemberResultCommand.Execute(null);
+
+            Assert.NotNull(requested);
+            Assert.Equal(2, requested!.ElementId);
+        }
+
+        [Fact]
+        public void OpenMemberResult_WithoutResult_DoesNothing()
+        {
+            var vm = new MainViewModel(AnalysisService.CreateDefault(), UiTestDocuments.BuildPortalFrameDocument());
+            bool raised = false;
+            vm.MemberResultRequested += (_, _) => raised = true;
+
+            vm.SelectedElementId = 2;
+            vm.OpenMemberResultCommand.Execute(null); // no analysis run yet
+
+            Assert.False(raised);
+        }
+
+        [Fact]
         public void ShowSheet_ChangesCurrentSheet()
         {
             var vm = new MainViewModel(AnalysisService.CreateDefault());

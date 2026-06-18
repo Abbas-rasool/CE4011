@@ -22,12 +22,10 @@ public static class SceneBuilder
         ArgumentNullException.ThrowIfNull(doc);
 
         var nodes = new List<SceneNode>(doc.Nodes.Count);
-        var nodeIndex = new Dictionary<NodeRowVm, int>(doc.Nodes.Count);
         for (int i = 0; i < doc.Nodes.Count; i++)
         {
             NodeRowVm n = doc.Nodes[i];
             nodes.Add(new SceneNode(i + 1, n.X, n.Y));
-            nodeIndex[n] = i; // 0-based, mirroring the mapper's positional ids
         }
 
         var members = new List<SceneMember>(doc.Elements.Count);
@@ -86,7 +84,7 @@ public static class SceneBuilder
         IReadOnlyList<SceneReaction> reactions = Array.Empty<SceneReaction>();
         if (result is not null)
         {
-            deflected = BuildDeflectedMembers(doc, result, nodeIndex, deflectionScale);
+            deflected = BuildDeflectedMembers(doc, result, deflectionScale);
             reactions = BuildReactions(doc, result);
         }
 
@@ -107,36 +105,49 @@ public static class SceneBuilder
     private static List<SceneDeflectedMember> BuildDeflectedMembers(
         ProjectDocument doc,
         FrameAnalysisResult result,
-        IReadOnlyDictionary<NodeRowVm, int> nodeIndex,
         double scale)
     {
-        var list = new List<SceneDeflectedMember>(doc.Elements.Count);
-        int rows = result.NodalDisplacements.GetLength(0);
+        // Station results are keyed by the solver element id, which the mapper assigns as
+        // (grid position + 1) — the same id this builder uses for SceneMember.
+        var byId = new Dictionary<int, MemberStationResult>(result.MemberStations.Count);
+        foreach (MemberStationResult ms in result.MemberStations)
+            byId[ms.ElementId] = ms;
 
+        var list = new List<SceneDeflectedMember>(doc.Elements.Count);
         for (int i = 0; i < doc.Elements.Count; i++)
         {
             ElementRowVm e = doc.Elements[i];
             if (e.StartNode is null || e.EndNode is null)
                 continue;
-            if (!nodeIndex.TryGetValue(e.StartNode, out int si) || !nodeIndex.TryGetValue(e.EndNode, out int ei))
-                continue;
-            if (si >= rows || ei >= rows)
+            if (!byId.TryGetValue(i + 1, out MemberStationResult? stations))
                 continue;
 
-            ScenePoint start = Displaced(e.StartNode, result, si, scale);
-            ScenePoint end = Displaced(e.EndNode, result, ei, scale);
-            list.Add(new SceneDeflectedMember(i + 1, new[] { start, end }));
+            double sx = e.StartNode.X, sy = e.StartNode.Y;
+            double dx = e.EndNode.X - sx, dy = e.EndNode.Y - sy;
+            double length = Math.Sqrt(dx * dx + dy * dy);
+            if (length <= 0.0)
+                continue;
+
+            double c = dx / length, s = dy / length; // member axis direction
+
+            var points = new ScenePoint[stations.X.Count];
+            for (int k = 0; k < stations.X.Count; k++)
+            {
+                double x = stations.X[k];                       // distance along member
+                double u = stations.DeflectionAxial[k];         // local, unscaled
+                double v = stations.DeflectionTransverse[k];
+
+                // Base point on the straight member axis, plus the local (u, v) offset
+                // rotated back to world and amplified by the deflection scale.
+                double baseX = sx + c * x, baseY = sy + s * x;
+                double offX = c * u - s * v, offY = s * u + c * v;
+                points[k] = new ScenePoint(baseX + offX * scale, baseY + offY * scale);
+            }
+
+            list.Add(new SceneDeflectedMember(i + 1, points));
         }
 
         return list;
-    }
-
-    private static ScenePoint Displaced(NodeRowVm node, FrameAnalysisResult result, int row, double scale)
-    {
-        // NodalDisplacements columns: [Ux, Uy, Rz].
-        double ux = result.NodalDisplacements[row, 0];
-        double uy = result.NodalDisplacements[row, 1];
-        return new ScenePoint(node.X + ux * scale, node.Y + uy * scale);
     }
 
     private static List<SceneReaction> BuildReactions(ProjectDocument doc, FrameAnalysisResult result)

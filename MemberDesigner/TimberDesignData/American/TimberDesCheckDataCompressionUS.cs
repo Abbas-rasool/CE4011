@@ -57,7 +57,8 @@ namespace MemberDesigner.TimberDesignData.American
         /// </summary>
         public override string GetSummary()
         {
-            throw new NotImplementedException();
+            return $"Compression ∥ — demand {ParallelDemandGross:0.##} / capacity {GrossCompressionCapacity:0.##} MPa " +
+                   $"(C_P = {ColumnStabilityFactor:0.###}); D/C = {GetUtilizationRatio():P0}";
         }
 
         /// <summary>
@@ -70,7 +71,14 @@ namespace MemberDesigner.TimberDesignData.American
 
         public override double GetUtilizationRatio()
         {
-            throw new NotImplementedException();
+            // Governing of: parallel-to-grain on gross (with C_P) and net sections, and
+            // perpendicular-to-grain bearing. Guard against zero/non-finite capacities.
+            double gross = GrossCompressionCapacity > 0 ? ParallelDemandGross / GrossCompressionCapacity : 0;
+            double net = NetCompressionCapacity > 0 ? ParallelDemandNet / NetCompressionCapacity : 0;
+            double perp = NetCompressionCapacityPerpendicular > 0 ? MaxPerpendicularDemand / NetCompressionCapacityPerpendicular : 0;
+
+            double ratio = Math.Max(gross, Math.Max(net, perp));
+            return double.IsFinite(ratio) && ratio > 0 ? ratio : 0;
         }
 
         #endregion

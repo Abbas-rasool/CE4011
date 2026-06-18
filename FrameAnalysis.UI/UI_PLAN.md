@@ -400,12 +400,29 @@ No per-click command needed; one shared property does it.
   messages, no crash. *(Nodal-displacement table still TODO.)*
 - **Acceptance:** sample solves; reactions show; an unstable model shows a clear message.
 
-### Phase 5 — Diagrams + hybrid selection + deflected shape
-- Sidebar element list bound to `SelectedElementId`; canvas hit-test sets the same.
-- Per-selected-member shear/moment/axial diagrams (from `ElementEndForceResult`).
-- Deflected shape from `NodalDisplacements` overlaid on the Scene.
-- **Acceptance:** clicking a member on canvas selects it in the list and shows its
-  diagrams; selecting in the list highlights it on canvas.
+### Phase 5 — Diagrams + hybrid selection + deflected shape ✅ implemented
+- **Post-processing engine** `ANALYSIS_CORE/Recovery/SectionForceRecovery` →
+  `FrameAnalysisResult.MemberStations`: per-member N/V/M and deflected shape sampled at
+  station points. Section forces by statics on the left free body (recovered member-end
+  forces + span loads to the cut); deflected shape by the **Hermite cubic** of the nodal
+  displacements + rotations (the lecture-note `y(ξ)` formula — captures bending, not just
+  the displaced end nodes). Station layout subdivides each span (default 8/span, cosmetic
+  only) and always samples the shear-zero point and point-load steps, so the extrema are
+  exact. Closed-form tests in `SectionForceRecoveryTests` (cantilever, SS UDL, point load).
+- **Deflected overlay** on the canvas now reads the station curve (`SceneBuilder` samples
+  `MemberStations`); `Wpf2DCanvasRenderer.DrawDeflected` unchanged (already a polyline).
+- **Per-member popup** (the chosen UX): double-click a member in the Summary → Members
+  list (`MouseBinding` → `MainViewModel.OpenMemberResultCommand`, which raises
+  `MemberResultRequested`; `MainWindow` opens `Views/MemberResultWindow`). Shows the
+  deflected shape on top, then N / V / M stacked.
+- **Design demands** (single-state run) now read the per-member **station envelope** (exact
+  worst section force along the span, e.g. mid-span UDL moment), via `DesignInputMapper`.
+- **Acceptance:** clicking a member on canvas selects it in the list and highlights it;
+  double-clicking shows its deflected shape + N/V/M; the deflected overlay is curved.
+- **Deferred follow-ups:** the per-combination ULS design envelope (`RunEnvelopeAsync`)
+  still superposes member-*end* forces only — extending the `SuperpositionBasis` to carry
+  station data would let combos use the span envelope too. Station count is hard-coded
+  (8/span); a "user-defined # points" toolbar control is the remaining board item.
 
 ### Phase 6 — Member Design tab ✅ implemented (timber: US-solid + EC5 + TR)
 Implemented via the existing **menu + `Sheet`-enum** navigation (not a separate

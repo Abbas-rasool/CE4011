@@ -1,6 +1,8 @@
 using FrameAnalysis.UI.Core.Documents;
 using FrameAnalysis.UI.Core.Documents.Rows;
+using FrameAnalysis.UI.Core.Units;
 using FrameAnalysisProgram.INPUT_OUTPUT;
+using StructuralLoads;
 
 namespace FrameAnalysis.UI.Core.Mapping;
 
@@ -17,9 +19,17 @@ namespace FrameAnalysis.UI.Core.Mapping;
 /// </summary>
 public static class ModelInputMapper
 {
-    public static StructureInputData ToInputData(ProjectDocument doc)
+    public static StructureInputData ToInputData(ProjectDocument doc) => ToInputData(doc, LoadScope.All);
+
+    /// <summary>
+    /// Maps the document to the solver DTO, including only the loads selected by
+    /// <paramref name="scope"/>. The default <see cref="LoadScope.All"/> is the whole model;
+    /// narrower scopes build the isolated per-load-case inputs the superposition basis needs.
+    /// </summary>
+    public static StructureInputData ToInputData(ProjectDocument doc, LoadScope scope)
     {
         ArgumentNullException.ThrowIfNull(doc);
+        ArgumentNullException.ThrowIfNull(scope);
 
         // Reference-identity position lookups (1-based). The row VMs don't override
         // Equals/GetHashCode, so the default comparer is reference equality.
@@ -35,11 +45,11 @@ public static class ModelInputMapper
             SectionTable = BuildSectionTable(doc),
             ElementTable = BuildElementTable(doc, nodeIds, materialIds, sectionIds),
             SupportTable = BuildSupportTable(doc, nodeIds),
-            LoadTable = BuildLoadTable(doc, nodeIds),
-            DistributedLoadTable = BuildDistributedLoadTable(doc, elementIds),
-            PointLoadTable = BuildPointLoadTable(doc, elementIds),
-            TemperatureLoadTable = BuildTemperatureLoadTable(doc, elementIds),
-            SettlementTable = BuildSettlementTable(doc, nodeIds),
+            LoadTable = BuildLoadTable(doc, nodeIds, scope),
+            DistributedLoadTable = BuildDistributedLoadTable(doc, elementIds, scope),
+            PointLoadTable = BuildPointLoadTable(doc, elementIds, scope),
+            TemperatureLoadTable = BuildTemperatureLoadTable(doc, elementIds, scope),
+            SettlementTable = BuildSettlementTable(doc, nodeIds, scope),
         };
     }
 
@@ -70,6 +80,7 @@ public static class ModelInputMapper
     {
         // MaterialTable columns: [ElasticModulus]. E is the only material input the analysis
         // needs, so it is mandatory here (design-only strength values are validated separately).
+        // E is entered in MPa and converted to the canonical kN/m² the solver works in.
         var table = new double[doc.Materials.Count, 1];
         for (int i = 0; i < doc.Materials.Count; i++)
         {
@@ -77,21 +88,22 @@ public static class ModelInputMapper
             if (e <= 0)
                 throw new InvalidOperationException(
                     $"Material {i + 1} has no elastic modulus (E) — required for analysis.");
-            table[i, 0] = e;
+            table[i, 0] = e * UnitSystem.MPaToKNm2;
         }
         return table;
     }
 
     private static double[,] BuildSectionTable(ProjectDocument doc)
     {
-        // SectionTable columns: [Width, Length(=Depth), MomentOfInertia]
+        // SectionTable columns: [Width, Length(=Depth), MomentOfInertia]. Width/Depth/I are
+        // stored in the user's chosen section unit; convert to the canonical metre system.
         var table = new double[doc.Sections.Count, 3];
         for (int i = 0; i < doc.Sections.Count; i++)
         {
             SectionRowVm s = doc.Sections[i];
-            table[i, 0] = s.Width;
-            table[i, 1] = s.Depth;
-            table[i, 2] = s.MomentOfInertia;
+            table[i, 0] = s.Width * doc.Units.SectionToM;
+            table[i, 1] = s.Depth * doc.Units.SectionToM;
+            table[i, 2] = s.MomentOfInertia * doc.Units.InertiaToM4;
         }
         return table;
     }
@@ -136,13 +148,17 @@ public static class ModelInputMapper
 
     // --- Loads ---
 
-    private static double[,] BuildLoadTable(ProjectDocument doc, Dictionary<NodeRowVm, int> nodeIds)
+    private static double[,] BuildLoadTable(ProjectDocument doc, Dictionary<NodeRowVm, int> nodeIds, LoadScope scope)
     {
         // LoadTable columns: [NodeId, Fx, Fy, Mz, Nature]
-        var table = new double[doc.NodalLoads.Count, 5];
-        for (int i = 0; i < doc.NodalLoads.Count; i++)
+        var rows = new List<NodalLoadRowVm>();
+        foreach (NodalLoadRowVm l in doc.NodalLoads)
+            if (scope.IncludesAction(l.Nature)) rows.Add(l);
+
+        var table = new double[rows.Count, 5];
+        for (int i = 0; i < rows.Count; i++)
         {
-            NodalLoadRowVm l = doc.NodalLoads[i];
+            NodalLoadRowVm l = rows[i];
             table[i, 0] = ResolveId(nodeIds, l.Node, "node", "Joint load", i + 1);
             table[i, 1] = l.Fx;
             table[i, 2] = l.Fy;
@@ -152,16 +168,18 @@ public static class ModelInputMapper
         return table;
     }
 
-    private static double[,]? BuildDistributedLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds)
+    private static double[,]? BuildDistributedLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds, LoadScope scope)
     {
-        if (doc.DistributedLoads.Count == 0)
-            return null;
+        var rows = new List<DistributedLoadRowVm>();
+        foreach (DistributedLoadRowVm d in doc.DistributedLoads)
+            if (scope.IncludesAction(d.Nature)) rows.Add(d);
+        if (rows.Count == 0) return null;
 
         // DistributedLoadTable columns: [ElementId, MagnitudePerLength, Direction, Nature]
-        var table = new double[doc.DistributedLoads.Count, 4];
-        for (int i = 0; i < doc.DistributedLoads.Count; i++)
+        var table = new double[rows.Count, 4];
+        for (int i = 0; i < rows.Count; i++)
         {
-            DistributedLoadRowVm d = doc.DistributedLoads[i];
+            DistributedLoadRowVm d = rows[i];
             table[i, 0] = ResolveId(elementIds, d.Element, "element", "Distributed load", i + 1);
             table[i, 1] = d.MagnitudePerLength;
             table[i, 2] = (int)d.Direction;
@@ -170,16 +188,18 @@ public static class ModelInputMapper
         return table;
     }
 
-    private static double[,]? BuildPointLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds)
+    private static double[,]? BuildPointLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds, LoadScope scope)
     {
-        if (doc.PointLoads.Count == 0)
-            return null;
+        var rows = new List<PointLoadRowVm>();
+        foreach (PointLoadRowVm p in doc.PointLoads)
+            if (scope.IncludesAction(p.Nature)) rows.Add(p);
+        if (rows.Count == 0) return null;
 
         // PointLoadTable columns: [ElementId, DistanceFromStart, Magnitude, Direction, Nature]
-        var table = new double[doc.PointLoads.Count, 5];
-        for (int i = 0; i < doc.PointLoads.Count; i++)
+        var table = new double[rows.Count, 5];
+        for (int i = 0; i < rows.Count; i++)
         {
-            PointLoadRowVm p = doc.PointLoads[i];
+            PointLoadRowVm p = rows[i];
             table[i, 0] = ResolveId(elementIds, p.Element, "element", "Point load", i + 1);
             table[i, 1] = p.DistanceFromStart;
             table[i, 2] = p.Magnitude;
@@ -189,9 +209,10 @@ public static class ModelInputMapper
         return table;
     }
 
-    private static double[,]? BuildTemperatureLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds)
+    private static double[,]? BuildTemperatureLoadTable(ProjectDocument doc, Dictionary<ElementRowVm, int> elementIds, LoadScope scope)
     {
-        if (doc.TemperatureLoads.Count == 0)
+        // Temperature actions are of nature Thermal.
+        if (!scope.IncludesAction(eLoadNature.Thermal) || doc.TemperatureLoads.Count == 0)
             return null;
 
         // TemperatureLoadTable columns:
@@ -209,19 +230,20 @@ public static class ModelInputMapper
         return table;
     }
 
-    private static double[,]? BuildSettlementTable(ProjectDocument doc, Dictionary<NodeRowVm, int> nodeIds)
+    private static double[,]? BuildSettlementTable(ProjectDocument doc, Dictionary<NodeRowVm, int> nodeIds, LoadScope scope)
     {
-        if (doc.Settlements.Count == 0)
+        if (!scope.IncludeSettlements || doc.Settlements.Count == 0)
             return null;
 
-        // SettlementTable columns: [NodeId, dUx, dUy, dRz]
+        // SettlementTable columns: [NodeId, dUx, dUy, dRz]. dUx/dUy are stored in the user's
+        // settlement length unit (converted to m); dRz is a rotation in radians.
         var table = new double[doc.Settlements.Count, 4];
         for (int i = 0; i < doc.Settlements.Count; i++)
         {
             SettlementRowVm s = doc.Settlements[i];
             table[i, 0] = ResolveId(nodeIds, s.Node, "node", "Settlement", i + 1);
-            table[i, 1] = s.DeltaUx;
-            table[i, 2] = s.DeltaUy;
+            table[i, 1] = s.DeltaUx * doc.Units.SettlementToM;
+            table[i, 2] = s.DeltaUy * doc.Units.SettlementToM;
             table[i, 3] = s.DeltaRz;
         }
         return table;

@@ -57,7 +57,8 @@ namespace MemberDesigner.DesignChecks.Helpers
         /// </summary>
         public double CalculateC_P(double f_E, double f_c0k, double c)
         {
-            double term1 = (1 + (f_E / (f_c0k))) / 2 * c;
+            // C_P = (1+α)/(2c) − √[ ((1+α)/(2c))² − α/c ],  α = f_E / f_c0k  (TS 647 / EC5 form).
+            double term1 = (1 + (f_E / f_c0k)) / (2 * c);
             double insideSqrt = Math.Pow(term1, 2) - (f_E / (c * f_c0k));
             double result = (term1 - Math.Sqrt(insideSqrt));
 

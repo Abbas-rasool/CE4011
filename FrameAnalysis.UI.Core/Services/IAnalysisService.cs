@@ -1,6 +1,7 @@
 using FrameAnalysis.UI.Core.Documents;
 using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
+using StructuralLoads;
 
 namespace FrameAnalysis.UI.Core.Services;
 
@@ -19,4 +20,12 @@ public sealed record AnalysisOutcome(
 public interface IAnalysisService
 {
     Task<AnalysisOutcome> RunAsync(ProjectDocument document, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Solves the model once per supplied load nature (and once for settlements, if any), each
+    /// in isolation, returning the basis for superposing combination demands. The structure is
+    /// the same for every case, so stability is load-independent. Throws on an unsolvable model.
+    /// </summary>
+    Task<SuperpositionBasis> RunPerNatureAsync(
+        ProjectDocument document, IReadOnlySet<eLoadNature> natures, CancellationToken cancellationToken = default);
 }

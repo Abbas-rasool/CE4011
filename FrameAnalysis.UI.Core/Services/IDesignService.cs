@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using FrameAnalysis.UI.Core.Documents;
+using FrameAnalysis.UI.Core.Documents.Rows;
 using FrameAnalysisProgram.ANALYSIS_CORE;
 using FrameAnalysisProgram.ANALYSIS_CORE.Validation;
 
@@ -24,5 +25,17 @@ public interface IDesignService
     Task<DesignOutcome> RunAsync(
         ProjectDocument document,
         FrameAnalysisResult? analysisResult,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Designs every member against every ultimate (ULS) combination using the superposition
+    /// <paramref name="basis"/>, returning the enveloped worst utilization per check (with the
+    /// governing combination) per member. Each combination gets its own governing load duration
+    /// (EC5/TR kmod).
+    /// </summary>
+    Task<DesignOutcome> RunEnvelopeAsync(
+        ProjectDocument document,
+        SuperpositionBasis basis,
+        IReadOnlyList<LoadCombinationRowVm> ulsCombinations,
         CancellationToken cancellationToken = default);
 }

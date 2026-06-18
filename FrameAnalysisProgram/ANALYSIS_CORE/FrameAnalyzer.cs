@@ -29,6 +29,7 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
         private readonly DisplacementMapper _displacementMapper;
         private readonly ElementForceRecovery _elementForceRecovery;
         private readonly ReactionRecovery _reactionRecovery;
+        private readonly SectionForceRecovery _sectionForceRecovery;
         private readonly ModelValidator _modelValidator;
         private readonly StiffnessSingularityDetector _singularityDetector;
 
@@ -42,7 +43,8 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             ElementForceRecovery elementForceRecovery,
             ReactionRecovery reactionRecovery,
             ModelValidator modelValidator,
-            StiffnessSingularityDetector singularityDetector)
+            StiffnessSingularityDetector singularityDetector,
+            SectionForceRecovery sectionForceRecovery = null)
         {
             _dofNumberingService = dofNumberingService ?? throw new ArgumentNullException(nameof(dofNumberingService));
             _globalStiffnessAssembler = globalStiffnessAssembler ?? throw new ArgumentNullException(nameof(globalStiffnessAssembler));
@@ -54,6 +56,8 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
             _reactionRecovery = reactionRecovery ?? throw new ArgumentNullException(nameof(reactionRecovery));
             _modelValidator = modelValidator ?? throw new ArgumentNullException(nameof(modelValidator));
             _singularityDetector = singularityDetector ?? throw new ArgumentNullException(nameof(singularityDetector));
+            // Optional: when omitted, the result carries no station data (back-compatible).
+            _sectionForceRecovery = sectionForceRecovery;
         }
 
         public FrameAnalysisResult Analyze(StructureModel model)
@@ -118,6 +122,12 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
 
             List<NodalReaction> reactions = _reactionRecovery.Compute(model, elementEndForces);
 
+            // Section forces + deflected shape sampled along each member (post-processing).
+            IReadOnlyList<MemberStationResult> memberStations = _sectionForceRecovery?.ComputeStations(
+                model,
+                nodalDisplacements,
+                elementEndForces);
+
             // 4. Post-solve equilibrium residual sanity check.
             AddEquilibriumResidualWarning(globalStiffnessMatrix, globalDisplacementVector, globalLoadVector, messages);
 
@@ -129,7 +139,8 @@ namespace FrameAnalysisProgram.ANALYSIS_CORE
                 nodalDisplacements,
                 elementEndForces,
                 reactions,
-                messages);
+                messages,
+                memberStations);
         }
 
         private static void AddEquilibriumResidualWarning(

@@ -18,6 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IAnalysisService _analysisService;
     private readonly IDesignService _designService;
+    private readonly LoadCombinationService _loadCombinationService = new();
 
     public MainViewModel(IAnalysisService analysisService, ProjectDocument? document = null, IDesignService? designService = null)
     {
@@ -101,7 +102,32 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             FrameAnalysisResult? result = HasResult ? LastOutcome!.Result : null;
-            LastDesignOutcome = await _designService.RunAsync(Document, result, cancellationToken);
+
+            // Use the per-combination envelope whenever ULS combinations exist (EC5/TR use kmod,
+            // US uses C_D/λ). With no combinations, fall back to the single-state run.
+            var ulsCombinations = Document.LoadCombinations.Where(c => c.IsUltimate).ToList();
+            bool useEnvelope = ulsCombinations.Count > 0;
+
+            if (useEnvelope)
+            {
+                try
+                {
+                    var natures = LoadCombinationService.PresentNatures(Document);
+                    SuperpositionBasis basis = await _analysisService.RunPerNatureAsync(Document, natures, cancellationToken);
+                    LastDesignOutcome = await _designService.RunEnvelopeAsync(Document, basis, ulsCombinations, cancellationToken);
+                }
+                catch (OperationCanceledException) { throw; }
+                catch
+                {
+                    // Per-nature solve failed for some reason — fall back to the single-state run.
+                    LastDesignOutcome = await _designService.RunAsync(Document, result, cancellationToken);
+                }
+            }
+            else
+            {
+                LastDesignOutcome = await _designService.RunAsync(Document, result, cancellationToken);
+            }
+
             CurrentSheet = Sheet.DesignResults;
         }
         finally
@@ -113,11 +139,51 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ShowSheet(Sheet sheet) => CurrentSheet = sheet;
 
+    /// <summary>
+    /// Raised when the user double-clicks a member in the summary list to see its results
+    /// popup (deflected shape + N/V/M). The View owns the window; the VM stays WPF-free and
+    /// just hands over the data to draw.
+    /// </summary>
+    public event Action<MemberStationResult, string>? MemberResultRequested;
+
+    /// <summary>Opens the results popup for the selected member, if a current result exists.</summary>
+    [RelayCommand]
+    private void OpenMemberResult()
+    {
+        if (!HasResult || SelectedElementId is not int id)
+            return;
+
+        MemberStationResult? stations = LastOutcome!.Result!.MemberStations
+            .FirstOrDefault(s => s.ElementId == id);
+        if (stations is null)
+            return;
+
+        MemberResultRequested?.Invoke(stations, $"Member {id}");
+    }
+
+    /// <summary>The load natures present in the model (shown on the Load Cases sheet).</summary>
+    public IReadOnlyList<string> PresentLoadCases =>
+        LoadCombinationService.PresentNatures(Document)
+            .OrderBy(n => n)
+            .Select(n => n.ToString())
+            .ToList();
+
+    /// <summary>Populates the editable combination list from the design code's set for the
+    /// present load natures. Replaces any existing rows (the user then edits them freely).</summary>
+    [RelayCommand]
+    private void GenerateLoadCombinations()
+    {
+        var combinations = _loadCombinationService.Generate(Document);
+        Document.LoadCombinations.Clear();
+        foreach (var c in combinations)
+            Document.LoadCombinations.Add(LoadCombinationRowVm.FromCombination(c));
+    }
+
     /// <summary>Add is available only on the editable data sheets (member-design rows are
     /// auto-synced from elements, so they are not user-added either).</summary>
     private bool CanAddRow => CurrentSheet is not (
-        Sheet.Results or Sheet.LoadCases or Sheet.LoadCombinations
-        or Sheet.DesignSettings or Sheet.MemberDesign or Sheet.DesignResults);
+        Sheet.Results or Sheet.LoadCases
+        or Sheet.DesignSettings or Sheet.MemberDesign or Sheet.DesignResults or Sheet.Units);
 
     /// <summary>
     /// Appends a blank row to the collection backing the current sheet. Going through the
@@ -139,6 +205,7 @@ public sealed partial class MainViewModel : ObservableObject
             case Sheet.PointLoads: Document.PointLoads.Add(new PointLoadRowVm()); break;
             case Sheet.Settlements: Document.Settlements.Add(new SettlementRowVm()); break;
             case Sheet.ThermalLoads: Document.TemperatureLoads.Add(new TemperatureLoadRowVm()); break;
+            case Sheet.LoadCombinations: Document.LoadCombinations.Add(new LoadCombinationRowVm()); break;
         }
     }
 
@@ -149,6 +216,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (!ResultsAreStale && LastOutcome is not null)
             ResultsAreStale = true;
 
+        OnPropertyChanged(nameof(PresentLoadCases)); // loads may have changed the present natures
         RebuildScene();
     }
 

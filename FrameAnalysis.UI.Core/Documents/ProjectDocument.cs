@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using FrameAnalysis.UI.Core.Documents.Rows;
+using FrameAnalysis.UI.Core.Units;
 
 namespace FrameAnalysis.UI.Core.Documents;
 
@@ -47,6 +48,20 @@ public sealed partial class ProjectDocument : ObservableObject, IDocumentChangeN
     /// <summary>Per-member design parameters, kept aligned with <see cref="Elements"/>.</summary>
     public ObservableRowCollection<MemberDesignRowVm> MemberDesigns { get; } = new();
 
+    /// <summary>User-editable load combinations (populated from the code's set, then tweakable).
+    /// Deliberately not funneled into <see cref="Changed"/>: editing combinations affects design,
+    /// not the analysis model, so it must not invalidate results or rebuild the scene.</summary>
+    public ObservableRowCollection<LoadCombinationRowVm> LoadCombinations { get; } = new();
+
+    /// <summary>User-selectable display units. Stored values are in these units; the mappers
+    /// read the conversion factors. Changing one rescales the affected stored values so the
+    /// physical model is unchanged.</summary>
+    public UnitSettings Units { get; } = new();
+
+    private bool _suppressChanged;
+    private SectionLengthUnit _prevSectionUnit;
+    private SettlementUnit _prevSettlementUnit;
+
     public ProjectDocument()
     {
         // Keep 1-based ids aligned with grid order for the identity-bearing tables.
@@ -72,6 +87,57 @@ public sealed partial class ProjectDocument : ObservableObject, IDocumentChangeN
         // Metadata edits count as document changes too.
         PropertyChanged += OnMetadataChanged;
         Design.PropertyChanged += OnMetadataChanged;
+
+        // A unit switch rescales the stored values so the physical model is preserved; it is a
+        // display change, not a model edit, so it must not mark results stale.
+        _prevSectionUnit = Units.Section;
+        _prevSettlementUnit = Units.Settlement;
+        Units.PropertyChanged += OnUnitsChanged;
+    }
+
+    private void OnUnitsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(UnitSettings.Section))
+        {
+            double ratio = UnitSettings.SectionToMFactor(_prevSectionUnit) / Units.SectionToM;
+            RescaleSections(ratio, System.Math.Pow(ratio, 4));
+            _prevSectionUnit = Units.Section;
+        }
+        else if (e.PropertyName == nameof(UnitSettings.Settlement))
+        {
+            double ratio = UnitSettings.SettlementToMFactor(_prevSettlementUnit) / Units.SettlementToM;
+            RescaleSettlements(ratio);
+            _prevSettlementUnit = Units.Settlement;
+        }
+    }
+
+    private void RescaleSections(double dimensionRatio, double inertiaRatio)
+    {
+        _suppressChanged = true;
+        try
+        {
+            foreach (SectionRowVm s in Sections)
+            {
+                s.Width *= dimensionRatio;
+                s.Depth *= dimensionRatio;
+                s.MomentOfInertia *= inertiaRatio;
+            }
+        }
+        finally { _suppressChanged = false; }
+    }
+
+    private void RescaleSettlements(double ratio)
+    {
+        _suppressChanged = true;
+        try
+        {
+            foreach (SettlementRowVm s in Settlements)
+            {
+                s.DeltaUx *= ratio;
+                s.DeltaUy *= ratio;
+            }
+        }
+        finally { _suppressChanged = false; }
     }
 
     /// <summary>
@@ -105,7 +171,11 @@ public sealed partial class ProjectDocument : ObservableObject, IDocumentChangeN
 
     private void OnMetadataChanged(object? sender, PropertyChangedEventArgs e) => RaiseChanged();
 
-    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    private void RaiseChanged()
+    {
+        if (_suppressChanged) return; // unit rescale in progress — display change, not a model edit
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>
     /// Reassigns ids 1..N in current order. Setting an id raises the row's

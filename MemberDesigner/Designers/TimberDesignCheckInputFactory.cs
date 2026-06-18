@@ -252,6 +252,7 @@ namespace MemberDesigner.Designers
             input.Temperature = _context.Temperature;
             input.TimeEffectFactor = _context.TimeEffectFactor;
             input.LoadDurationFactor = _context.LoadDurationFactor;
+            input.loadCombinationType = _context.DesignMethod;
             input.IsLumberIncised = false;
             input.TimberType = _context.TimberType;
             input.designParameter = designParameter;

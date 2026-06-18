@@ -25,6 +25,10 @@ namespace FrameAnalysis.UI
             _renderer.ElementPicked += (_, id) => _viewModel.SelectedElementId = id;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
+            // The VM stays WPF-free: it asks for the popup, the window opens it here.
+            _viewModel.MemberResultRequested += (stations, label) =>
+                new MemberResultWindow(stations, label) { Owner = this }.Show();
+
             Loaded += (_, _) =>
             {
                 _renderer.Render(_viewModel.CurrentScene);

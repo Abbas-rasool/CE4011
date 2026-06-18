@@ -6,6 +6,8 @@
                     xmlns:sl="clr-namespace:StructuralLoads;assembly=StructuralLoads"
                     xmlns:des="clr-namespace:MemberDesigner.Designers;assembly=MemberDesigner"
                     xmlns:conv="clr-namespace:FrameAnalysis.UI.Converters"
+                    xmlns:beh="clr-namespace:FrameAnalysis.UI.Behaviors"
+                    xmlns:units="clr-namespace:FrameAnalysis.UI.Core.Units;assembly=FrameAnalysis.UI.Core"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
 
     <!-- Shared resources used by the sheet templates below. -->
@@ -88,6 +90,18 @@
         </ObjectDataProvider.MethodParameters>
     </ObjectDataProvider>
 
+    <ObjectDataProvider x:Key="LimitStates" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+        <ObjectDataProvider.MethodParameters>
+            <x:Type TypeName="sl:eLimitState"/>
+        </ObjectDataProvider.MethodParameters>
+    </ObjectDataProvider>
+
+    <ObjectDataProvider x:Key="LoadCombinationTypes" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
+        <ObjectDataProvider.MethodParameters>
+            <x:Type TypeName="sl:eLoadCombinationType"/>
+        </ObjectDataProvider.MethodParameters>
+    </ObjectDataProvider>
+
     <!-- Each template is one sheet. The ContentControl host's Content is the MainViewModel,
          so every template's DataContext is the view-model and binds to it directly. -->
 
@@ -162,7 +176,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="MaterialsSheetTemplate">
-        <GroupBox Header="Materials (design values auto-fill from the grade; tick Override to edit by hand)">
+        <GroupBox Header="Materials — strengths in MPa, ρk in kg/m³ (design values auto-fill from the grade; tick Override to edit by hand)">
             <DataGrid ItemsSource="{Binding Document.Materials}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True">
                 <DataGrid.Resources>
                     <conv:BindingProxy x:Key="MatProxy" Data="{Binding}"/>
@@ -224,15 +238,15 @@
     </DataTemplate>
 
     <DataTemplate x:Key="SectionsSheetTemplate">
-        <GroupBox Header="Sections">
+        <GroupBox Header="{Binding Document.Units.SectionHeader}">
             <DataGrid ItemsSource="{Binding Document.Sections}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="ID" Binding="{Binding Id}" IsReadOnly="True" Width="36"/>
                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
-                    <DataGridTextColumn Header="Width [m]" Binding="{Binding Width}" Width="*"/>
-                    <DataGridTextColumn Header="Depth [m]" Binding="{Binding Depth}" Width="*"/>
-                    <DataGridTextColumn Header="I [m⁴]" Binding="{Binding MomentOfInertia}" Width="*"/>
-                    <DataGridTextColumn Header="A [m²]" Binding="{Binding Area}" IsReadOnly="True" Width="*"/>
+                    <DataGridTextColumn Header="Width" Binding="{Binding Width}" Width="*"/>
+                    <DataGridTextColumn Header="Depth" Binding="{Binding Depth}" Width="*"/>
+                    <DataGridTextColumn Header="I" Binding="{Binding MomentOfInertia}" Width="*"/>
+                    <DataGridTextColumn Header="A" Binding="{Binding Area}" IsReadOnly="True" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>
@@ -282,9 +296,9 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Fx" Binding="{Binding Fx}" Width="*"/>
-                    <DataGridTextColumn Header="Fy" Binding="{Binding Fy}" Width="*"/>
-                    <DataGridTextColumn Header="Mz" Binding="{Binding Mz}" Width="*"/>
+                    <DataGridTextColumn Header="Fx [kN]" Binding="{Binding Fx}" Width="*"/>
+                    <DataGridTextColumn Header="Fy [kN]" Binding="{Binding Fy}" Width="*"/>
+                    <DataGridTextColumn Header="Mz [kN·m]" Binding="{Binding Mz}" Width="*"/>
                     <DataGridTemplateColumn Header="Nature" Width="90">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -310,7 +324,7 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="w /length" Binding="{Binding MagnitudePerLength}" Width="*"/>
+                    <DataGridTextColumn Header="w [kN/m]" Binding="{Binding MagnitudePerLength}" Width="*"/>
                     <DataGridTemplateColumn Header="Dir" Width="70">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -344,8 +358,8 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Dist." Binding="{Binding DistanceFromStart}" Width="*"/>
-                    <DataGridTextColumn Header="P" Binding="{Binding Magnitude}" Width="*"/>
+                    <DataGridTextColumn Header="Dist. [m]" Binding="{Binding DistanceFromStart}" Width="*"/>
+                    <DataGridTextColumn Header="P [kN]" Binding="{Binding Magnitude}" Width="*"/>
                     <DataGridTemplateColumn Header="Dir" Width="70">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -368,7 +382,7 @@
     </DataTemplate>
 
     <DataTemplate x:Key="SettlementsSheetTemplate">
-        <GroupBox Header="Settlements">
+        <GroupBox Header="{Binding Document.Units.SettlementHeader}">
             <DataGrid ItemsSource="{Binding Document.Settlements}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Header="Node" Width="*">
@@ -399,21 +413,54 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="ΔT" Binding="{Binding UniformTemperatureChange}" Width="*"/>
-                    <DataGridTextColumn Header="Grad" Binding="{Binding TemperatureGradient}" Width="*"/>
-                    <DataGridTextColumn Header="α" Binding="{Binding ThermalExpansionCoefficient}" Width="*"/>
-                    <DataGridTextColumn Header="Depth" Binding="{Binding MemberDepth}" Width="*"/>
+                    <DataGridTextColumn Header="ΔT [°C]" Binding="{Binding UniformTemperatureChange}" Width="*"/>
+                    <DataGridTextColumn Header="Grad [°C]" Binding="{Binding TemperatureGradient}" Width="*"/>
+                    <DataGridTextColumn Header="α [1/°C]" Binding="{Binding ThermalExpansionCoefficient}" Width="*"/>
+                    <DataGridTextColumn Header="Depth [m]" Binding="{Binding MemberDepth}" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
         </GroupBox>
     </DataTemplate>
 
     <DataTemplate x:Key="LoadCasesTemplate">
-        <TextBlock Text="Load cases — coming soon (backend not ready yet)." Foreground="Gray" Margin="8" TextWrapping="Wrap"/>
+        <GroupBox Header="Load Cases (natures present in the model — derived from the loads)">
+            <ItemsControl ItemsSource="{Binding PresentLoadCases}" Margin="6">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Margin="0,2"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </GroupBox>
     </DataTemplate>
 
     <DataTemplate x:Key="LoadCombinationsTemplate">
-        <TextBlock Text="Load combinations — coming soon (backend not ready yet)." Foreground="Gray" Margin="8" TextWrapping="Wrap"/>
+        <GroupBox Header="Load Combinations (generate from the load cases, then edit factors freely)">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+                    <Button Content="Generate from load cases" Command="{Binding GenerateLoadCombinationsCommand}" Padding="8,2"/>
+                    <TextBlock Text="(regenerating replaces the list; Add Row / Delete to adjust)" Foreground="Gray"
+                               VerticalAlignment="Center" Margin="10,0"/>
+                </StackPanel>
+                <DataGrid ItemsSource="{Binding Document.LoadCombinations}" AutoGenerateColumns="False"
+                          CanUserAddRows="False" CanUserDeleteRows="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="2*"/>
+                        <DataGridComboBoxColumn Header="Limit state" Width="*"
+                                                SelectedItemBinding="{Binding LimitState}"
+                                                ItemsSource="{Binding Source={StaticResource LimitStates}}"/>
+                        <DataGridTextColumn Header="D" Binding="{Binding Dead, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="L" Binding="{Binding Live, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="Lr" Binding="{Binding RoofLive, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="S" Binding="{Binding Snow, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="W" Binding="{Binding Wind, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="R" Binding="{Binding Rain, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="E" Binding="{Binding Seismic, StringFormat=0.##}" Width="*"/>
+                        <DataGridTextColumn Header="T" Binding="{Binding Thermal, StringFormat=0.##}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </GroupBox>
     </DataTemplate>
 
     <DataTemplate x:Key="ResultsSheetTemplate">
@@ -430,18 +477,19 @@
                        Visibility="{Binding ResultsAreStale, Converter={StaticResource BoolToVis}}"
                        Text="⚠ Model changed since the last run — results are out of date. Re-run analysis."/>
 
-            <GroupBox Grid.Row="1" Header="Members">
+            <GroupBox Grid.Row="1" Header="Members (double-click for diagrams)">
                 <ListBox MaxHeight="120" ItemsSource="{Binding Document.Elements}"
-                         SelectedValuePath="Id" SelectedValue="{Binding SelectedElementId}"/>
+                         SelectedValuePath="Id" SelectedValue="{Binding SelectedElementId}"
+                         beh:DoubleClickCommand.Command="{Binding OpenMemberResultCommand}"/>
             </GroupBox>
 
             <GroupBox Grid.Row="2" Header="Reactions">
                 <DataGrid ItemsSource="{Binding LastOutcome.Result.Reactions}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Node" Binding="{Binding NodeId}" Width="*"/>
-                        <DataGridTextColumn Header="Fx" Binding="{Binding Fx, StringFormat=N3}" Width="*"/>
-                        <DataGridTextColumn Header="Fy" Binding="{Binding Fy, StringFormat=N3}" Width="*"/>
-                        <DataGridTextColumn Header="Mz" Binding="{Binding Mz, StringFormat=N3}" Width="*"/>
+                        <DataGridTextColumn Header="Fx [kN]" Binding="{Binding Fx, StringFormat=N3}" Width="*"/>
+                        <DataGridTextColumn Header="Fy [kN]" Binding="{Binding Fy, StringFormat=N3}" Width="*"/>
+                        <DataGridTextColumn Header="Mz [kN·m]" Binding="{Binding Mz, StringFormat=N3}" Width="*"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </GroupBox>
@@ -451,7 +499,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock TextWrapping="Wrap">
-                                <Run Text="["/><Run Text="{Binding Severity}"/><Run Text="] "/><Run Text="{Binding Message}"/>
+                                <Run Text="["/><Run Text="{Binding Severity, Mode=OneWay}"/><Run Text="] "/><Run Text="{Binding Message, Mode=OneWay}"/>
                             </TextBlock>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -479,8 +527,12 @@
                                   SelectedItem="{Binding Document.Design.DefaultLoadDuration, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
 
-                    <!-- US: moisture condition -->
+                    <!-- US: design method + moisture condition -->
                     <StackPanel Visibility="{Binding Document.Design.Code, Converter={StaticResource CodeVis}, ConverterParameter=US}">
+                        <TextBlock Text="Design method (ASD / LRFD)" Margin="0,10,0,2"/>
+                        <ComboBox ItemsSource="{Binding Source={StaticResource LoadCombinationTypes}}"
+                                  SelectedItem="{Binding Document.Design.UsDesignMethod, UpdateSourceTrigger=PropertyChanged}"/>
+
                         <TextBlock Text="Moisture condition" Margin="0,10,0,2"/>
                         <ComboBox ItemsSource="{Binding Source={StaticResource MoistureConditions}}"
                                   SelectedItem="{Binding Document.Design.MoistureCondition, UpdateSourceTrigger=PropertyChanged}"/>
@@ -539,9 +591,9 @@
                 </DataGrid.Resources>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Member" Binding="{Binding Element}" IsReadOnly="True" Width="*"/>
-                    <DataGridTextColumn Header="Le major [mm]" Binding="{Binding EffectiveLengthMajor}" Width="*"/>
-                    <DataGridTextColumn Header="Le minor [mm]" Binding="{Binding EffectiveLengthMinor}" Width="*"/>
-                    <DataGridTextColumn Header="Le beam [mm]" Binding="{Binding EffectiveBeamLength}" Width="*"/>
+                    <DataGridTextColumn Header="Le major [m]" Binding="{Binding EffectiveLengthMajor}" Width="*"/>
+                    <DataGridTextColumn Header="Le minor [m]" Binding="{Binding EffectiveLengthMinor}" Width="*"/>
+                    <DataGridTextColumn Header="Le beam [m]" Binding="{Binding EffectiveBeamLength}" Width="*"/>
                     <DataGridTextColumn Header="Net/Gross" Binding="{Binding NetAreaFactor}" Width="74"/>
                     <DataGridTemplateColumn Header="Support" Width="110"
                         Visibility="{Binding Data.Document.Design.Code, Source={StaticResource MdProxy}, Converter={StaticResource CodeVis}, ConverterParameter='EC5,TR'}">
@@ -589,6 +641,8 @@
                                                     Background="{Binding GoverningStatus, Converter={StaticResource StatusToBrush}}">
                                                 <TextBlock Text="{Binding GoverningStatus}" Foreground="White"/>
                                             </Border>
+                                            <TextBlock Text="{Binding GoverningCombination}" Foreground="Gray"
+                                                       VerticalAlignment="Center" Margin="10,0,0,0"/>
                                         </StackPanel>
                                     </Expander.Header>
                                     <DataGrid ItemsSource="{Binding Checks}" AutoGenerateColumns="False" IsReadOnly="True"
@@ -596,6 +650,7 @@
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="Check" Binding="{Binding CheckType}" Width="*"/>
                                             <DataGridTextColumn Header="D/C" Binding="{Binding Utilization, StringFormat=P0}" Width="80"/>
+                                            <DataGridTextColumn Header="Combo" Binding="{Binding GoverningCombination}" Width="*"/>
                                             <DataGridTemplateColumn Header="Status" Width="90">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
@@ -618,13 +673,50 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <TextBlock TextWrapping="Wrap">
-                                <Run Text="["/><Run Text="{Binding Severity}"/><Run Text="] "/><Run Text="{Binding Message}"/>
+                                <Run Text="["/><Run Text="{Binding Severity, Mode=OneWay}"/><Run Text="] "/><Run Text="{Binding Message, Mode=OneWay}"/>
                             </TextBlock>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </GroupBox>
         </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="UnitsSheetTemplate">
+        <GroupBox Header="Display Units" VerticalAlignment="Top">
+            <StackPanel Margin="6">
+                <TextBlock TextWrapping="Wrap" Foreground="Gray" Margin="0,0,0,12"
+                           Text="Choose how these quantities are shown and entered. Switching rescales the existing values, so the physical model is unchanged. (Coordinates are in m, forces in kN, moments in kN·m, stress in MPa.)"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="110"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Section dimensions (Width, Depth, I, A)"
+                               VerticalAlignment="Center" Margin="0,4,16,4"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" Margin="0,4" SelectedValuePath="Tag"
+                              SelectedValue="{Binding Document.Units.Section, Mode=TwoWay}">
+                        <ComboBoxItem Content="mm" Tag="{x:Static units:SectionLengthUnit.Millimetre}"/>
+                        <ComboBoxItem Content="cm" Tag="{x:Static units:SectionLengthUnit.Centimetre}"/>
+                        <ComboBoxItem Content="m"  Tag="{x:Static units:SectionLengthUnit.Metre}"/>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Settlements (dUx, dUy)"
+                               VerticalAlignment="Center" Margin="0,4,16,4"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,4" SelectedValuePath="Tag"
+                              SelectedValue="{Binding Document.Units.Settlement, Mode=TwoWay}">
+                        <ComboBoxItem Content="mm" Tag="{x:Static units:SettlementUnit.Millimetre}"/>
+                        <ComboBoxItem Content="m"  Tag="{x:Static units:SettlementUnit.Metre}"/>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
     </DataTemplate>
 
 </ResourceDictionary>

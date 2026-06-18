@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using FrameAnalysis.UI.Core.Documents;
 using FrameAnalysis.UI.Core.Documents.Rows;
+using FrameAnalysis.UI.Core.Units;
 using FrameAnalysisProgram.ANALYSIS_CORE;
 using MemberDesigner.Designers;
 using static MemberDesigner.Designers.Enums;
@@ -24,11 +25,46 @@ public static class DesignInputMapper
         MemberDesignRowVm memberRow,
         int elementNumber,
         DesignSettings settings,
-        FrameAnalysisResult result)
+        FrameAnalysisResult result,
+        UnitSettings units)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        TimberMemberDesignContext context = BuildBase(memberRow, settings, units);
+        ApplyDemands(context, result, elementNumber);
+        return context;
+    }
+
+    /// <summary>
+    /// Builds a context from a pre-combined demand vector (local end forces in canonical kN / kN·m)
+    /// and the combination's governing load-duration class — used by the per-combination design
+    /// envelope. The duration overrides the project default so the EC5/TR kmod is per-combination,
+    /// unless the user has manually fixed the factors.
+    /// </summary>
+    public static TimberMemberDesignContext BuildContext(
+        MemberDesignRowVm memberRow,
+        DesignSettings settings,
+        UnitSettings units,
+        double[] localEndForces,
+        DurationFactors durationFactors)
+    {
+        ArgumentNullException.ThrowIfNull(localEndForces);
+        TimberMemberDesignContext context = BuildBase(memberRow, settings, units);
+        if (!settings.FactorsModified)
+        {
+            // EC5/TR read the duration class (→ kmod); US reads C_D (ASD) / λ (LRFD).
+            context.LoadDurationClass = durationFactors.DurationClass;
+            context.LoadDurationFactor = (float)durationFactors.LoadDurationFactor;
+            context.TimeEffectFactor = (float)durationFactors.TimeEffectFactor;
+        }
+        ApplyDemands(context, localEndForces);
+        return context;
+    }
+
+    private static TimberMemberDesignContext BuildBase(MemberDesignRowVm memberRow, DesignSettings settings, UnitSettings units)
     {
         ArgumentNullException.ThrowIfNull(memberRow);
         ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(units);
 
         ElementRowVm element = memberRow.Element
             ?? throw new InvalidOperationException("Member design row has no element assigned.");
@@ -42,10 +78,9 @@ public static class DesignInputMapper
         var context = new TimberMemberDesignContext { Code = settings.Code };
 
         ApplyMaterial(context, material, settings.Code);
-        ApplyGeometry(context, section, memberRow.NetAreaFactor);
+        ApplyGeometry(context, section, memberRow.NetAreaFactor, units);
         ApplyMember(context, memberRow);
         ApplySettings(context, settings);
-        ApplyDemands(context, result, elementNumber);
 
         return context;
     }
@@ -67,11 +102,13 @@ public static class DesignInputMapper
             ctx.TimberGrade = ToTimberGrade(materialUI.SpeciesGrade.Value);
     }
 
-    private static void ApplyGeometry(TimberMemberDesignContext c, SectionRowVm s, double netAreaFactor)
+    private static void ApplyGeometry(TimberMemberDesignContext c, SectionRowVm s, double netAreaFactor, UnitSettings units)
     {
-        // Major axis = depth, minor axis = width (rectangular section).
-        float depth = (float)s.Depth;
-        float width = (float)s.Width;
+        // Major axis = depth, minor axis = width (rectangular section). Section dimensions are
+        // stored in the user's chosen unit; the design backend expects mm.
+        double toMm = units.SectionToM * UnitSystem.MToMm; // chosen section unit → m → mm
+        float depth = (float)(s.Depth * toMm);
+        float width = (float)(s.Width * toMm);
         float gross = width * depth;
 
         c.H1 = depth;
@@ -86,9 +123,10 @@ public static class DesignInputMapper
 
     private static void ApplyMember(TimberMemberDesignContext c, MemberDesignRowVm r)
     {
-        c.EffectiveLengthMajor = (float)r.EffectiveLengthMajor;
-        c.EffectiveLengthMinor = (float)r.EffectiveLengthMinor;
-        c.EffectiveBeamLength = (float)r.EffectiveBeamLength;
+        // Effective lengths are entered in m; the design backend works in mm.
+        c.EffectiveLengthMajor = (float)(r.EffectiveLengthMajor * UnitSystem.MToMm);
+        c.EffectiveLengthMinor = (float)(r.EffectiveLengthMinor * UnitSystem.MToMm);
+        c.EffectiveBeamLength = (float)(r.EffectiveBeamLength * UnitSystem.MToMm);
         c.SupportType = r.SupportType;
         c.IsLaterallySupported = r.IsLaterallySupported;
         c.IsRepetitiveMember = r.IsRepetitiveMember;
@@ -104,15 +142,50 @@ public static class DesignInputMapper
         c.ModificationFactor = (float)s.ModificationFactor;
         c.LoadDurationFactor = (float)s.LoadDurationFactor;
         c.TimeEffectFactor = (float)s.TimeEffectFactor;
+        c.DesignMethod = s.UsDesignMethod; // US: ASD vs LRFD
     }
 
     private static void ApplyDemands(TimberMemberDesignContext c, FrameAnalysisResult result, int elementNumber)
     {
+        // Prefer the per-member station envelope: the exact worst section force anywhere
+        // along the span (e.g. the mid-span moment under a UDL, not just the end values).
+        // Fall back to the member-end forces when no station data is available.
+        MemberStationResult? stations = result.MemberStations.FirstOrDefault(s => s.ElementId == elementNumber);
+        if (stations is not null && stations.X.Count > 0)
+        {
+            ApplyDemands(c, stations);
+            return;
+        }
+
         ElementEndForceResult? forces = result.ElementEndForces.FirstOrDefault(e => e.Element.Id == elementNumber);
-
         if (forces is null) return; // no demands (e.g. element not in the solved model)
+        ApplyDemands(c, forces.LocalEndForces);
+    }
 
-        double[] f = forces.LocalEndForces;
+    /// <summary>Sets the demand fields from the per-member station envelope (canonical
+    /// kN / kN·m), converting to the design backend's N / N·mm.</summary>
+    private static void ApplyDemands(TimberMemberDesignContext c, MemberStationResult s)
+    {
+        double maxN = double.NegativeInfinity, minN = double.PositiveInfinity;
+        foreach (double n in s.Axial)
+        {
+            if (n > maxN) maxN = n;
+            if (n < minN) minN = n;
+        }
+
+        // Axial is tension-positive; route the worst of each sign to its demand.
+        c.AxialTension = (float)(Math.Max(maxN, 0.0) * UnitSystem.KNToN);
+        c.AxialCompression = (float)(Math.Max(-minN, 0.0) * UnitSystem.KNToN);
+        c.Shear = (float)(s.MaxAbsShear * UnitSystem.KNToN);
+        c.MomentMajor = (float)(s.MaxAbsMoment * UnitSystem.KNmToNmm);
+        c.MomentMinor = 0f; // out-of-plane is zero in the 2D solver
+    }
+
+    /// <summary>Sets the demand fields from a local end-force vector [Fx1,Fy1,Mz1,Fx2,Fy2,Mz2]
+    /// (canonical kN / kN·m), converting to the design backend's N / N·mm.</summary>
+    private static void ApplyDemands(TimberMemberDesignContext c, double[] f)
+    {
+        if (f.Length == 0) return;
         bool isFrame = f.Length == 6;
 
         double fx1 = f[0];
@@ -124,10 +197,10 @@ public static class DesignInputMapper
         // Axial: tension positive = -Fx1 (= Fx2 for a member with no axial span load).
         double axialTension = -fx1;
 
-        c.AxialTension = (float)Math.Max(axialTension, 0.0);
-        c.AxialCompression = (float)Math.Max(-axialTension, 0.0);
-        c.Shear = (float)Math.Max(Math.Abs(fy1), Math.Abs(fy2));
-        c.MomentMajor = (float)Math.Max(Math.Abs(mz1), Math.Abs(mz2));
+        c.AxialTension = (float)(Math.Max(axialTension, 0.0) * UnitSystem.KNToN);
+        c.AxialCompression = (float)(Math.Max(-axialTension, 0.0) * UnitSystem.KNToN);
+        c.Shear = (float)(Math.Max(Math.Abs(fy1), Math.Abs(fy2)) * UnitSystem.KNToN);
+        c.MomentMajor = (float)(Math.Max(Math.Abs(mz1), Math.Abs(mz2)) * UnitSystem.KNmToNmm);
         c.MomentMinor = 0f; // out-of-plane is zero in the 2D solver
     }
 
