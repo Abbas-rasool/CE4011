@@ -14,7 +14,7 @@ namespace FrameAnalysis.UI
         {
             base.OnStartup(e);
 
-            var viewModel = new MainViewModel(AnalysisService.CreateDefault(), SampleModels.PortalFrame());
+            var viewModel = new MainViewModel(AnalysisService.CreateDefault(), SampleModels.Q4Frame());
             new MainWindow(viewModel).Show();
         }
     }
