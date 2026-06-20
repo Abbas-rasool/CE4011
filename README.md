@@ -3,7 +3,7 @@
 A from-scratch **2D structural analysis and timber design** desktop application, written in
 C# (**.NET 10, WPF**). It analyzes plane **frames and trusses** by the linear-elastic
 **direct stiffness (matrix displacement) method** and performs **timber member design** to
-three codes (**US / NDS**, **Eurocode 5**, and **Turkish TBDY**), with a live 2D model view,
+three codes (**US / NDS**, **Eurocode 5**, and **Turkish Timber Code**), with a live 2D model view,
 internal-force diagrams, and code-based load combinations. The analysis engine, loading
 layer, design engine, and matrix library are all hand-built (only the sparse Cholesky
 factorization uses CSparse).
