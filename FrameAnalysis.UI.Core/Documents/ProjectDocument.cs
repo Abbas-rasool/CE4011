@@ -118,9 +118,16 @@ public sealed partial class ProjectDocument : ObservableObject, IDocumentChangeN
         {
             foreach (SectionRowVm s in Sections)
             {
-                s.Width *= dimensionRatio;
-                s.Depth *= dimensionRatio;
-                s.MomentOfInertia *= inertiaRatio;
+                // Suppress dimension-driven I auto-fill: the three values are rescaled
+                // independently here (I by ratio⁴), not via the rectangular formula.
+                s.SuppressInertiaAutoFill = true;
+                try
+                {
+                    s.Width *= dimensionRatio;
+                    s.Depth *= dimensionRatio;
+                    s.MomentOfInertia *= inertiaRatio;
+                }
+                finally { s.SuppressInertiaAutoFill = false; }
             }
         }
         finally { _suppressChanged = false; }
